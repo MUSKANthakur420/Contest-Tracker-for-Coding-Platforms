@@ -572,7 +572,7 @@ export default function Dashboard() {
       ) {
         const res =
           await fetch(
-            `http://localhost:8000/api/v1/users/dashboard/status/${jobId}`,
+          `https://contest-tracker-for-coding-platforms-1.onrender.com/api/v1/users/dashboard/status/${jobId}`,
             {
               credentials:
                 "include",
@@ -633,7 +633,7 @@ export default function Dashboard() {
       try {
         const res =
           await fetch(
-            "http://localhost:8000/api/v1/users/refresh",
+            "https://contest-tracker-for-coding-platforms-1.onrender.com/api/v1/users/refresh",
             {
               method: "POST",
 
