@@ -25,8 +25,11 @@ const app = express();
 
 // JWT agar HTTP-only cookie me store karoge to ye mandatory hai.
 app.use(cors({
-  origin: "http://localhost:5173",
-  credentials: true,
+  origin: [
+      "http://localhost:5173",
+      "https://contesttrackerfrontend-khaki.vercel.app"
+  ],
+  credentials: true
 }));
 
 app.use(express.json());
