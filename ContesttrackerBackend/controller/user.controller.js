@@ -41,7 +41,7 @@ const register = asynchandler(async (req, res) => {
         naukri
     } = req.body;
 
-    if (!username || !phone || !email || !password) {
+    if (!username || !email || !password) {
         return res.status(400).json(
             new Apires(400, "All fields are required", null)
         );
