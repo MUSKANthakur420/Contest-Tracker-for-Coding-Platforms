@@ -27,7 +27,8 @@ import {
   Crown,
 } from "lucide-react";
 
-const API_URL = "http://localhost:8000/api/v1/users/dashboard";
+const API_URL =
+  "https://contest-tracker-for-coding-platforms-1.onrender.com/api/v1/users/dashboard";
 
 const FONT_IMPORT = `@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap');`;
 

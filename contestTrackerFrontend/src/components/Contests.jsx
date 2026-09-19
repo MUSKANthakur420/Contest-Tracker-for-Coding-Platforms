@@ -4,7 +4,8 @@ import { useState, useEffect, useMemo } from "react";
 // { id, name, platform, startTime (ms epoch), url }
 // Mounted inside user.routes.js as router.route("/contests"), under the
 // /api/v1/users prefix — so the final path is /api/v1/users/contests.
-const CONTESTS_API_URL = "http://localhost:8000/api/v1/users/contests";
+const CONTESTS_API_URL =
+  "https://contest-tracker-for-coding-platforms-1.onrender.com/api/v1/users/contests";
 
 const PLATFORM_COLORS = {
   Codeforces: "#ff3d3d",

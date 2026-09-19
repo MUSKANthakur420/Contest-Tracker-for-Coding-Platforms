@@ -27,7 +27,7 @@ function Edit() {
         const fetchUser = async () => {
             try {
                 const res = await fetch(
-                    "http://localhost:8000/api/v1/users/me",
+                    "https://contest-tracker-for-coding-platforms-1.onrender.com/api/v1/users/me",
                     {
                         headers: {
                             Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
@@ -35,7 +35,6 @@ function Edit() {
                         credentials: "include",
                     }
                 );
-
                 const data = await res.json();
                 const user = data.user || data.data?.user || data.data;
 
