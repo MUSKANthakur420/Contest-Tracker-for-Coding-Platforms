@@ -27,7 +27,8 @@ const app = express();
 app.use(cors({
   origin: [
       "http://localhost:5173",
-      "https://contesttrackerfrontend-khaki.vercel.app"
+       "https://contesttrackerfrontend-khaki.vercel.app",
+    "https://contesttrackerfrontend-455s3qs7p.vercel.app"
   ],
   credentials: true
 }));
