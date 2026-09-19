@@ -22,10 +22,14 @@ export const registerUser = createAsyncThunk("auth/registerUser", async ({
             withCredentials: true,
         });
         return user.data.data;
-    } catch (error) {
-        console.log(error.response);
-        console.log(error.response?.data);
-        return rejectWithValue(error.response?.data?.message);
+    }  catch (error) {
+        console.log("REGISTER ERROR STATUS:", error.response?.status);
+        console.log("REGISTER ERROR DATA:", error.response?.data);
+        console.log("REGISTER ERROR MESSAGE:", error.message);
+    
+        return rejectWithValue(
+            error.response?.data?.message || error.message
+        );
     }
 });
 export const updateUser = createAsyncThunk("auth/updateUser", async ({

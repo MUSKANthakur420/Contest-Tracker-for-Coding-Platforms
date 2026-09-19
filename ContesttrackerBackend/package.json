@@ -4,10 +4,11 @@
   "description": "",
   "main": "index.js",
   "type": "module",
-  "scripts": {
-    "dev": "nodemon index.js",
-    "worker": "node workers/dashboard.worker.js"
-  },
+ "scripts": {
+  "dev": "nodemon index.js",
+  "start": "node index.js",
+  "worker": "node workers/dashboard.worker.js"
+},
   "author": "",
   "license": "ISC",
   "dependencies": {

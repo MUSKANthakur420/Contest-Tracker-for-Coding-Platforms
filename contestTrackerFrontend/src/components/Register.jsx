@@ -138,13 +138,12 @@ function Register() {
                         value={password}
                         className="bg-[#0b0e14] border border-[#232838] rounded-lg px-3.5 py-2.5 text-sm text-[#e6e8ef] placeholder:text-[#545b70] outline-none focus:border-[#4f8cff] transition-colors"
                     />
-                    <button
-                        type='submit'
-                        disabled={!otpSent}
-                        className={`mt-2 text-sm font-semibold text-[#0b0e14] bg-[#4f8cff] px-5 py-2.5 rounded-lg transition-all ${!otpSent ? 'opacity-50 cursor-not-allowed' : 'hover:opacity-90'}`}
-                    >
-                        Register Account
-                    </button>
+                   <button
+    type="submit"
+    className="mt-2 text-sm font-semibold text-[#0b0e14] bg-[#4f8cff] px-5 py-2.5 rounded-lg transition-all hover:opacity-90"
+>
+    Register Account
+</button>
                 </form>
             </div>
         </main>
