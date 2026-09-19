@@ -103,11 +103,11 @@ const login = asynchandler(async (req, res) => {
     const newuser = await User.findById(user._id)
         .select("-password -refreshToken");
 
-    const options = {
-        httpOnly: true,
-        secure: false, // localhost
-        sameSite: "lax"
-    };
+        const options = {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === "production",
+            sameSite: process.env.NODE_ENV === "production" ? "none" : "lax"
+        };
 
     return res
         .status(200)
@@ -137,8 +137,8 @@ const logout = asynchandler(async (req, res) => {
 
     const options = {
         httpOnly: true,
-        secure: false,
-        sameSite: "lax"
+        secure: process.env.NODE_ENV === "production",
+        sameSite: process.env.NODE_ENV === "production" ? "none" : "lax"
     };
 
     return res
