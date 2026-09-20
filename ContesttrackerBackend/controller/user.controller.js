@@ -72,11 +72,27 @@ const register = asynchandler(async (req, res) => {
             naukri: naukri || ""
         }
     });
+    const { accessToken, refreshToken } =
+    await AccessTokenandRefreshToken(newUser._id);
 
-    return res.status(201).json(
-        new Apires(201, "User registered successfully", newUser)
-    );
-});
+const registeredUser = await User.findById(newUser._id)
+    .select("-password -refreshToken");
+
+const options = {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax"
+};
+
+return res
+    .status(201)
+    .cookie("accessToken", accessToken, options)
+    .cookie("refreshToken", refreshToken, options)
+    .json(
+        new Apires(201, "User registered successfully", {
+            user: registeredUser
+        })
+    )});
 
 const login = asynchandler(async (req, res) => {
     const { email, password } = req.body;
