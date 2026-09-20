@@ -61,23 +61,16 @@ const worker = new Worker(
     }
 );
 
-worker.on("completed", (job) => {
-    console.log(`✅ Job ${job.id} completed`);
+worker.on("ready", () => {
+    console.log("🟢 WORKER READY");
 });
 
-worker.on("failed", async(job, error) => {
-    if(job){
-    const {userId}= job?.data;
-    await redis.del(`dashboard:refreshing:${userId}`);
-    }
-    console.error(
-        `❌ Job ${job?.id} failed:`,
-        error.message
-    );
+worker.on("active", (job) => {
+    console.log("🟡 WORKER ACTIVE:", job.id);
 });
 
-worker.on("error", (error) => {
-    console.error("❌ Worker error:", error);
+worker.on("error", (err) => {
+    console.error("❌ WORKER ERROR:", err);
 });
 
 console.log("🚀 Dashboard worker started...");
