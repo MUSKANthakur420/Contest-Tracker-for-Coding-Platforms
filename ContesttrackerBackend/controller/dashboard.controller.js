@@ -23,36 +23,59 @@ const dashboard = async (req, res) => {
     data: JSON.parse(cachedDashboard),
   });
 };
-
 const refreshDashboard = asynchandler(async (req, res) => {
-  const userId = req.user._id.toString();
+    const userId = req.user._id.toString();
     const lockKey = `dashboard:refreshing:${userId}`;
-    const acquired = await redis.set(lockKey, "1", "EX", 60, "NX");
-  console.log("REFRESH API CALLED");
-  if (!acquired){
-    return res.status(202).json(
+  
+    console.log("REFRESH API CALLED");
+  
+    const acquired = await redis.set(
+      lockKey,
+      "1",
+      "EX",
+      60,
+      "NX"
+    );
+  
+    console.log("LOCK RESULT:", acquired);
+  
+    if (!acquired) {
+      console.log("⚠️ REFRESH ALREADY LOCKED");
+  
+      return res.status(202).json(
         new Apires(
-            202,
-            "Dashboard refresh already in progress",
-            null
+          202,
+          "Dashboard refresh already in progress",
+          null
         )
-    );
-}
-try {
-    const job = await dashboardQueue.add("refresh", {
+      );
+    }
+  
+    try {
+      console.log("BEFORE QUEUE ADD");
+  
+      const job = await dashboardQueue.add("refresh", {
         userId,
-    });
-
-    return res.status(202).json(
-        new Apires(202, "Dashboard refresh started", {
+      });
+  
+      console.log("🔥 JOB ADDED:", job.id);
+  
+      return res.status(202).json(
+        new Apires(
+          202,
+          "Dashboard refresh started",
+          {
             jobId: job.id,
-        })
-    );
-} catch (error) {
-    await redis.del(lockKey);
-    throw error;
-}
-});
+          }
+        )
+      );
+    } catch (error) {
+      console.error("❌ QUEUE ADD FAILED:", error);
+  
+      await redis.del(lockKey);
+      throw error;
+    }
+  });
 
 const dashboardStatus = asynchandler(async (req, res) => {
   const { jobId } = req.params;

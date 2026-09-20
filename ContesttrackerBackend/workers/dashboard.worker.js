@@ -67,8 +67,8 @@ worker.on("completed", (job) => {
 
 worker.on("failed", async(job, error) => {
     if(job){
-    const {userid}= job?.data;
-    await redis.del(`dashboard:refreshing:${userid}`);
+    const {userId}= job?.data;
+    await redis.del(`dashboard:refreshing:${userId}`);
     }
     console.error(
         `❌ Job ${job?.id} failed:`,
