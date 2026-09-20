@@ -73,8 +73,11 @@ const EMPTY_NAUKRI = {
     streak: 0,
 };
 
-const hasUsername = (u) =>
-    typeof u === "string" && u.trim().length > 0;
+const hasUsername = (username) =>
+    typeof username === "string" &&
+    username.trim() !== "" &&
+    username !== "undefined" &&
+    username !== "null";
 
 const PROFILE_URL = {
     leetcode: (u) => `https://leetcode.com/${u}`,
@@ -87,7 +90,9 @@ const PROFILE_URL = {
 
 const buildPlatformEntry = (platformKey, username) => {
     if (!hasUsername(username)) {
-        return { connected: false };
+        return {
+            connected: false,
+        };
     }
 
     return {
