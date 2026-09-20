@@ -4,10 +4,11 @@
   "description": "",
   "main": "index.js",
   "type": "module",
- "scripts": {
+"scripts": {
   "dev": "nodemon index.js",
   "start": "node index.js",
-  "worker": "node workers/dashboard.worker.js"
+  "worker": "node workers/dashboard.worker.js",
+  "start:all": "concurrently \"npm run start\" \"npm run worker\""
 },
   "author": "",
   "license": "ISC",
@@ -16,6 +17,7 @@
     "bullmq": "^6.3.6",
     "cheerio": "^1.2.0",
     "cloudinary": "^2.10.0",
+    "concurrently": "^10.0.5",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
