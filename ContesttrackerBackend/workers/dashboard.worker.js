@@ -60,7 +60,9 @@ const worker = new Worker(
         concurrency: 5,
     }
 );
+await worker.waitUntilReady();
 
+console.log("🟢 WORKER REALLY READY");
 worker.on("ready", () => {
     console.log("🟢 WORKER READY");
 });
