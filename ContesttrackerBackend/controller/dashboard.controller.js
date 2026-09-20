@@ -52,23 +52,26 @@ const refreshDashboard = asynchandler(async (req, res) => {
     }
   
     try {
-      console.log("BEFORE QUEUE ADD");
-  
-      const job = await dashboardQueue.add("refresh", {
-        userId,
-      });
-  
-      console.log("🔥 JOB ADDED:", job.id);
-  
-      return res.status(202).json(
-        new Apires(
-          202,
-          "Dashboard refresh started",
-          {
-            jobId: job.id,
-          }
-        )
-      );
+        const job = await dashboardQueue.add("refresh", {
+            userId,
+        });
+    
+        console.log("🔥 JOB ADDED:", job.id);
+    
+        const counts = await dashboardQueue.getJobCounts(
+            "waiting",
+            "active",
+            "completed",
+            "failed"
+        );
+    
+        console.log("📊 QUEUE COUNTS:", counts);
+    
+        return res.status(202).json(
+            new Apires(202, "Dashboard refresh started", {
+                jobId: job.id,
+            })
+        );
     } catch (error) {
       console.error("❌ QUEUE ADD FAILED:", error);
   
