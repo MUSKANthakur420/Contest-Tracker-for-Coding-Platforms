@@ -379,7 +379,7 @@ export default function Dashboard() {
     clear: clearCooldown,
   } = useRefreshCooldown(data?.profile?.username);
 
-  const token = () => localStorage.getItem("token");
+  const token = () => localStorage.getItem("accessToken") || localStorage.getItem("token");
 
   /* =========================================================
      FETCH DASHBOARD
@@ -439,6 +439,9 @@ export default function Dashboard() {
 
     while (Date.now() < deadline) {
       const res = await fetch(`${API_BASE}/dashboard/status/${jobId}`, {
+        headers: {
+          ...(token() ? { Authorization: `Bearer ${token()}` } : {}),
+        },
         credentials: "include",
       });
 
