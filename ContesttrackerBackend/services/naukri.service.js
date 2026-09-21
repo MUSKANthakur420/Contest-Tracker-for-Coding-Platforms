@@ -15,7 +15,7 @@ export const getNaukriData = async (profileId) => {
     if (!profileId || !profileId.trim()) {
         throw new Error("Code360 profile ID is missing.");
     }
-    const key = `profile:leetcode:${username}`;
+    const key = `profile:naukri:${profileId.trim()}`;
     const cache=await redis.get(key)
     if(cache) return JSON.parse(cache);
     console.log("CODE360 API FETCH START");

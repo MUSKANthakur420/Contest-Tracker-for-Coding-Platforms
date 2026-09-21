@@ -47,6 +47,7 @@ export const LeetcodeData = async (username) => {
       "LeetCode username is missing for this user's codingProfiles."
     );
   }
+  username=username.trim()
   const key = `profile:leetcode:${username}`;
   const cache = await redis.get(key);
   if (cache)

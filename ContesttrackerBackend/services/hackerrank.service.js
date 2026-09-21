@@ -41,10 +41,11 @@ const findEmbeddedJson = ($, keys) => {
 };
 
 export const getHackerrankData = async (username) => {
-    if(!username) return null;
     if (!username?.trim()) {
         throw new Error("HackerRank username is required.");
     }
+
+    username = username.trim();
     const key=`profile:hackerrank:${username}`;
     const cache=await redis.get(key);
     if(cache) return JSON.parse(cache);
