@@ -31,7 +31,7 @@ const dashboard = asynchandler(async (req, res) => {
       `dashboard:${req.user._id}`,
       JSON.stringify(freshData),
       "EX",
-      300
+      900
     );
   } catch (err) {
     console.error("Redis set error in dashboard fallback:", err);

@@ -96,7 +96,10 @@ const authSlice=createSlice({
         })
        .addCase(registerUser.fulfilled,(state,action)=>{
             state.loading=false;
-            state.user=action.payload;
+            state.user=action.payload?.user || action.payload;
+            if (action.payload?.accessToken) {
+                localStorage.setItem("accessToken", action.payload.accessToken);
+            }
         })
         .addCase(registerUser.rejected,(state,action)=>{
             state.loading=false;
@@ -108,7 +111,10 @@ const authSlice=createSlice({
         })
         .addCase(loginUser.fulfilled,(state,action)=>{
             state.loading=false;
-            state.user=action.payload;
+            state.user=action.payload?.user || action.payload;
+            if (action.payload?.accessToken) {
+                localStorage.setItem("accessToken", action.payload.accessToken);
+            }
         })
         .addCase(loginUser.rejected,(state,action)=>{
             state.loading=false;
@@ -118,15 +124,21 @@ const authSlice=createSlice({
             state.loading=true;
             state.error=null;
             state.user=null;
+            localStorage.removeItem("accessToken");
+            localStorage.removeItem("token");
         })
         .addCase(logoutUser.fulfilled,(state)=>{
             state.loading=false;
             state.user=null;
+            localStorage.removeItem("accessToken");
+            localStorage.removeItem("token");
         })
         .addCase(logoutUser.rejected,(state,action)=>{
             state.loading=false;
             state.user=null;
             state.error=action.payload;
+            localStorage.removeItem("accessToken");
+            localStorage.removeItem("token");
         })
         .addCase(updateUser.pending, (state) => {
             state.loading = true;

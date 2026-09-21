@@ -24,12 +24,25 @@ const app = express();
 // bhej sake.
 
 // JWT agar HTTP-only cookie me store karoge to ye mandatory hai.
-app.use(cors({
-  origin: [
-      "http://localhost:5173",
-       "https://contesttrackerfrontend-khaki.vercel.app",
+const allowedOrigins = [
+    "http://localhost:5173",
+    "http://localhost:3000",
+    "https://contesttrackerfrontend-khaki.vercel.app",
     "https://contesttrackerfrontend-455s3qs7p.vercel.app"
-  ],
+];
+
+app.use(cors({
+  origin: function (origin, callback) {
+    if (!origin) return callback(null, true);
+    if (
+      allowedOrigins.includes(origin) ||
+      origin.endsWith(".vercel.app") ||
+      origin.includes("localhost")
+    ) {
+      return callback(null, true);
+    }
+    return callback(null, true);
+  },
   credentials: true
 }));
 

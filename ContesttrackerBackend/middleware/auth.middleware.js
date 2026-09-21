@@ -10,15 +10,15 @@ try {
     req.cookies?.accessToken ||
     req.header("Authorization")?.replace("Bearer ", "");
         if(!token)
-            return res.status(400).json(new apierror(401,"unauthorized request"))
+            return res.status(401).json(new apierror(401,"unauthorized request"))
        const decodedToken= jwt.verify(token,process.env.ACCESS_TOKEN_SECRET)
       const user = await User.findById(decodedToken?._id).select("-password -refreshtoken")
       if(!user){
-        return res.status(400).json(new apierror(401,"Invalid acces token request"))
+        return res.status(401).json(new apierror(401,"Invalid access token request"))
       }
       req.user=user;
       next()
 } catch (error) {
-    return res.status(400).json(new apierror(401,error?.message || "Invalid Access Token"))
+    return res.status(401).json(new apierror(401,error?.message || "Invalid Access Token"))
 }
 })

@@ -1,3 +1,4 @@
+import redis from "../config/redis.js";
 const GRAPHQL_URL = "https://leetcode.com/graphql";
 const QUERY = `
   query userDashboardData($username: String!) {
@@ -46,10 +47,10 @@ export const LeetcodeData = async (username) => {
       "LeetCode username is missing for this user's codingProfiles."
     );
   }
-
-  // Always fetch fresh data from LeetCode.
-  // Caching is handled globally through Redis.
-
+  const key = `profile:leetcode:${username}`;
+  const cache = await redis.get(key);
+  if (cache)
+    return JSON.parse(cache);
   console.log("LEETCODE FETCH START");
 
   const res = await fetch(GRAPHQL_URL, {
@@ -78,7 +79,7 @@ export const LeetcodeData = async (username) => {
   } catch {
     throw new Error(
       `LeetCode GraphQL returned a non-JSON response (status ${res.status}). ` +
-        `LeetCode may be rate-limiting or blocking this request.`
+      `LeetCode may be rate-limiting or blocking this request.`
     );
   }
 
@@ -127,6 +128,7 @@ export const LeetcodeData = async (username) => {
     history,
     calendar: matchedUser.userCalendar ?? null,
   };
+  await redis.set(key, JSON.stringify(result), "EX", 900);
 
   return result;
 };

@@ -91,10 +91,11 @@ const register = asynchandler(async (req, res) => {
 const registeredUser = await User.findById(newUser._id)
     .select("-password -refreshToken");
 
+const isProduction = process.env.NODE_ENV === "production" || Boolean(process.env.PORT) || Boolean(process.env.RENDER);
 const options = {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax"
+    secure: isProduction,
+    sameSite: isProduction ? "none" : "lax"
 };
 
 return res
@@ -103,7 +104,8 @@ return res
     .cookie("refreshToken", refreshToken, options)
     .json(
         new Apires(201, "User registered successfully", {
-            user: registeredUser
+            user: registeredUser,
+            accessToken
         })
     )});
 
@@ -132,11 +134,11 @@ const login = asynchandler(async (req, res) => {
     const newuser = await User.findById(user._id)
         .select("-password -refreshToken");
 
-        const options = {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === "production",
-            sameSite: process.env.NODE_ENV === "production" ? "none" : "lax"
-        };
+    const options = {
+        httpOnly: true,
+        secure: isProduction,
+        sameSite: isProduction ? "none" : "lax"
+    };
 
     return res
         .status(200)
@@ -144,7 +146,8 @@ const login = asynchandler(async (req, res) => {
         .cookie("refreshToken", refreshToken, options)
         .json(
             new Apires(200, "User logged in successfully", {
-                user: newuser
+                user: newuser,
+                accessToken
             })
         );
 });

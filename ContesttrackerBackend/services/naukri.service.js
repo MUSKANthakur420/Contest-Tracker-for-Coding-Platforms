@@ -1,3 +1,4 @@
+import redis from "../config/redis.js";
 const CODE360_API =
     "https://www.naukri.com/code360/api/v3/public_section/profile/user_details";
 
@@ -14,7 +15,9 @@ export const getNaukriData = async (profileId) => {
     if (!profileId || !profileId.trim()) {
         throw new Error("Code360 profile ID is missing.");
     }
-
+    const key = `profile:leetcode:${username}`;
+    const cache=await redis.get(key)
+    if(cache) return JSON.parse(cache);
     console.log("CODE360 API FETCH START");
 
     const url = new URL(CODE360_API);
@@ -104,18 +107,19 @@ export const getNaukriData = async (profileId) => {
     // -----------------------------------
     // FINAL RESPONSE
     // -----------------------------------
+const data={
+    profileId: profileId.trim(),
 
-    return {
-        profileId: profileId.trim(),
+    solved: {
+        easySolved,
+        mediumSolved,
+        hardSolved,
+        totalSolved,
+    },
 
-        solved: {
-            easySolved,
-            mediumSolved,
-            hardSolved,
-            totalSolved,
-        },
-
-        rank,
-        streak,
-    };
+    rank,
+    streak,
+};
+await redis.set(key,JSON.stringify(data),"EX",900);
+    return data;
 };

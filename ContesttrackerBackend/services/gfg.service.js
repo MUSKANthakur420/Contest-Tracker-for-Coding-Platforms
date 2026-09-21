@@ -1,4 +1,11 @@
+import redis from "../config/redis.js";
 export const getGfgData = async (username) => {
+    if(!username) return null;
+    const key=`profile:gfg:${username}`;
+    const cache=await redis.get(key);
+    if(cache)
+        return JSON.parse(cache);
+
     const [profileRes, statsRes, ratingRes] = await Promise.all([
         fetch(`https://gfg-stats.tashif.codes/${username}`),
         fetch(`https://gfg-stats.tashif.codes/${username}/stats`),
@@ -12,7 +19,6 @@ export const getGfgData = async (username) => {
     const profileJson = await profileRes.json();
     const statsJson = await statsRes.json();
     const ratingJson = await ratingRes.json();
-
     if (
         profileJson.status !== "success" ||
         statsJson.status !== "success" ||
@@ -24,7 +30,6 @@ export const getGfgData = async (username) => {
     const profileData = profileJson.data;
     const statsData = statsJson.data;
     const ratingData = ratingJson.data;
-
     // =========================
     // SOLVED
     // =========================
@@ -33,13 +38,10 @@ export const getGfgData = async (username) => {
     const mediumSolved = statsData.byDifficulty?.medium ?? 0;
     const hardSolved = statsData.byDifficulty?.hard ?? 0;
 
-    // =========================
+   
     // RATING HISTORY
-    // =========================
-
     const history = ratingData.history ?? [];
-
-    return {
+    const data={
         solved: {
             easySolved,
             mediumSolved,
@@ -63,4 +65,6 @@ export const getGfgData = async (username) => {
             history,
         },
     };
+    await redis.set(key,JSON.stringify(data),"EX",900);
+    return data;
 };

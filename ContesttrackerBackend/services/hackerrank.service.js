@@ -1,5 +1,5 @@
 import * as cheerio from "cheerio";
-
+import redis from "../config/redis.js";
 const PROFILE_URL = (username) =>
     `https://hackerrank.com/profile/${username}`;
 
@@ -41,10 +41,13 @@ const findEmbeddedJson = ($, keys) => {
 };
 
 export const getHackerrankData = async (username) => {
+    if(!username) return null;
     if (!username?.trim()) {
         throw new Error("HackerRank username is required.");
     }
-
+    const key=`profile:hackerrank:${username}`;
+    const cache=await redis.get(key);
+    if(cache) return JSON.parse(cache);
     console.log(`Starting HackerRank data fetch for: ${username}`);
 
     const [profileRes, badgesRes, contestRes] = await Promise.all([
@@ -165,12 +168,7 @@ export const getHackerrankData = async (username) => {
             );
         }
     }
-
-    // =========================
-    // FINAL RESPONSE
-    // =========================
-
-    return {
+    const data={
         username,
     
         solved: state?.hacker?.solved_challenges_count ?? 0,
@@ -185,4 +183,10 @@ export const getHackerrankData = async (username) => {
             history: contestInfo.history,
             }
         };
+        await redis.set(key,JSON.stringify(data),"EX",900);
+    // =========================
+    // FINAL RESPONSE
+    // =========================
+
+    return data;
     };

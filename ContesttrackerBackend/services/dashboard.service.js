@@ -87,7 +87,6 @@ const PROFILE_URL = {
     hackerrank: (u) => `https://www.hackerrank.com/profile/${u}`,
     naukri: (u) => `https://www.naukri.com/code360/profile/${u}`,
 };
-
 const buildPlatformEntry = (platformKey, username) => {
     if (!hasUsername(username)) {
         return {
