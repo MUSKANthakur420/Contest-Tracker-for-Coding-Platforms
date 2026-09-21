@@ -18,7 +18,7 @@ function Register() {
     
     const dispatch = useDispatch();
     const navigate = useNavigate();
-    const { error } = useSelector((state) => state.auth);
+    const { error, loading } = useSelector((state) => state.auth);
 
     // 1. Function to handle sending OTP
 
@@ -145,9 +145,10 @@ function Register() {
                     />
                    <button
     type="submit"
-    className="mt-2 text-sm font-semibold text-[#0b0e14] bg-[#4f8cff] px-5 py-2.5 rounded-lg transition-all hover:opacity-90"
+    disabled={loading}
+    className="mt-2 text-sm font-semibold text-[#0b0e14] bg-[#4f8cff] px-5 py-2.5 rounded-lg transition-all hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
 >
-    Register Account
+    {loading ? "Registering Account..." : "Register Account"}
 </button>
                 </form>
             </div>

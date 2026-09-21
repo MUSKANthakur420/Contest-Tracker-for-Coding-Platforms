@@ -9,13 +9,11 @@ function Login() {
     const [password, setpassword] = useState("");
     const dispatch = useDispatch();
     const navigate = useNavigate();
-    const { user, error } = useSelector((state) => state.auth);
+    const { user, error, loading } = useSelector((state) => state.auth);
 
     const handler = (e) => {
         e.preventDefault();
         dispatch(loginUser({ email, password }));
-        setemail("");
-        setpassword("");
     }
 
     // Redirect to home the moment login succeeds (user gets set in the store)
@@ -56,9 +54,10 @@ function Login() {
                     />
                     <button
                         type='submit'
-                        className="mt-2 text-sm font-semibold text-[#0b0e14] bg-[#4f8cff] px-5 py-2.5 rounded-lg hover:opacity-90 transition-opacity"
+                        disabled={loading}
+                        className="mt-2 text-sm font-semibold text-[#0b0e14] bg-[#4f8cff] px-5 py-2.5 rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                        Submit
+                        {loading ? "Logging in..." : "Submit"}
                     </button>
                 </form>
             </div>
