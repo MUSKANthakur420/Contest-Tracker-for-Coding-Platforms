@@ -55,4 +55,16 @@ import router from "./route/user.route.js";
 
 app.use("/api/v1/users", router); //format for sending request
 
+// Global Error Handler Middleware
+app.use((err, req, res, next) => {
+  console.error("Global Error Handler caught:", err);
+  const statusCode = err.statuscode || err.statusCode || 500;
+  const message = err.message || "Internal Server Error";
+  return res.status(statusCode).json({
+    success: false,
+    message,
+    error: err.error || null
+  });
+});
+
 export { app };

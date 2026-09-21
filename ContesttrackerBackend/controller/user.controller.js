@@ -26,6 +26,21 @@ const getCurrentUser = asynchandler(async (req, res) => {
     );
 });
 
+const getCookieOptions = (req) => {
+    const isSecure = Boolean(
+        req?.secure || 
+        req?.headers?.["x-forwarded-proto"] === "https" ||
+        process.env.NODE_ENV === "production" ||
+        process.env.RENDER
+    );
+
+    return {
+        httpOnly: true,
+        secure: isSecure,
+        sameSite: isSecure ? "none" : "lax"
+    };
+};
+
 const register = asynchandler(async (req, res) => {
     const {
         username,
@@ -91,12 +106,7 @@ const register = asynchandler(async (req, res) => {
 const registeredUser = await User.findById(newUser._id)
     .select("-password -refreshToken");
 
-const isProduction = process.env.NODE_ENV === "production" || Boolean(process.env.PORT) || Boolean(process.env.RENDER);
-const options = {
-    httpOnly: true,
-    secure: isProduction,
-    sameSite: isProduction ? "none" : "lax"
-};
+const options = getCookieOptions(req);
 
 return res
     .status(201)
@@ -112,11 +122,17 @@ return res
 const login = asynchandler(async (req, res) => {
     const { email, password } = req.body;
 
+    if (!email || !password) {
+        return res.status(400).json(
+            new Apires(400, "Email and password are required", null)
+        );
+    }
+
     const user = await User.findOne({ email });
 
     if (!user) {
         return res.status(404).json(
-            new Apires(404, "User is invalid")
+            new Apires(404, "User is invalid", null)
         );
     }
 
@@ -124,7 +140,7 @@ const login = asynchandler(async (req, res) => {
 
     if (!isMatch) {
         return res.status(401).json(
-            new Apierr(401, "Invalid credentials")
+            new Apires(401, "Invalid credentials", null)
         );
     }
 
@@ -134,11 +150,7 @@ const login = asynchandler(async (req, res) => {
     const newuser = await User.findById(user._id)
         .select("-password -refreshToken");
 
-    const options = {
-        httpOnly: true,
-        secure: isProduction,
-        sameSite: isProduction ? "none" : "lax"
-    };
+    const options = getCookieOptions(req);
 
     return res
         .status(200)
@@ -157,7 +169,7 @@ const logout = asynchandler(async (req, res) => {
 
     if (!user) {
         return res.status(400).json(
-            new Apierr(400, "User not found", null)
+            new Apires(400, "User not found", null)
         );
     }
 
@@ -167,11 +179,7 @@ const logout = asynchandler(async (req, res) => {
         { new: true }
     );
 
-    const options = {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: process.env.NODE_ENV === "production" ? "none" : "lax"
-    };
+    const options = getCookieOptions(req);
 
     return res
         .status(200)
