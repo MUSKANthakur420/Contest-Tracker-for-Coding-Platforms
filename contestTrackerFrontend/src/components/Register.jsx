@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { registerUser } from '../features/auth/authSlice';
 import { useNavigate } from 'react-router-dom';
 
@@ -16,9 +16,9 @@ function Register() {
     const [gfg, setgfg] = useState("");
     const [img, setimg] = useState(null);
     
-    // UI state to track if OTP has been requested
     const dispatch = useDispatch();
     const navigate = useNavigate();
+    const { error } = useSelector((state) => state.auth);
 
     // 1. Function to handle sending OTP
 
@@ -55,12 +55,15 @@ function Register() {
                 <span className="inline-block font-mono text-xs tracking-widest uppercase text-[#4f8cff] mb-2">
                     create account
                 </span>
-                <h1 className="text-2xl font-bold text-[#f2f4f8] mb-6">Join ContTrack</h1>
+                {error && (
+                    <p className="text-sm text-[#ff5c5c] mb-4">{error}</p>
+                )}
 
                 <form onSubmit={handleRegister} className="flex flex-col gap-4">
                     <input
                         type='text'
                         placeholder='Enter your name'
+                        required
                         onChange={(e) => setname(e.target.value)}
                         value={username}
                         className="bg-[#0b0e14] border border-[#232838] rounded-lg px-3.5 py-2.5 text-sm text-[#e6e8ef] placeholder:text-[#545b70] outline-none focus:border-[#4f8cff] transition-colors"
@@ -79,6 +82,7 @@ function Register() {
                     <input
                         type='email'
                         placeholder='Enter your email'
+                        required
                         onChange={(e) => setemail(e.target.value)}
                         value={email}
                         className="bg-[#0b0e14] border border-[#232838] rounded-lg px-3.5 py-2.5 text-sm text-[#e6e8ef] placeholder:text-[#545b70] outline-none focus:border-[#4f8cff] transition-colors"
@@ -134,6 +138,7 @@ function Register() {
                     <input
                         type='password'
                         placeholder='Enter your password'
+                        required
                         onChange={(e) => setpassword(e.target.value)}
                         value={password}
                         className="bg-[#0b0e14] border border-[#232838] rounded-lg px-3.5 py-2.5 text-sm text-[#e6e8ef] placeholder:text-[#545b70] outline-none focus:border-[#4f8cff] transition-colors"
