@@ -6,23 +6,42 @@ import Apires from "../utils/Apires.js";
 import { dashboardQueue } from "../queues/dashboard.queue.js";
 import redis from "../config/redis.js";
 
-const dashboard = async (req, res) => {
-  const cachedDashboard = await redis.get(
-    `dashboard:${req.user._id}`
-  );
+const dashboard = asynchandler(async (req, res) => {
+  let cachedDashboard = null;
+  try {
+    cachedDashboard = await redis.get(
+      `dashboard:${req.user._id}`
+    );
+  } catch (err) {
+    console.error("Redis get error in dashboard:", err);
+  }
 
-  if (!cachedDashboard) {
-    return res.status(404).json({
-      success: false,
-      message: "Dashboard data not available. Please refresh.",
+  if (cachedDashboard) {
+    return res.status(200).json({
+      success: true,
+      data: JSON.parse(cachedDashboard),
     });
+  }
+
+  // Cache miss fallback: compute dashboard data live, store in Redis, and return
+  const freshData = await getDashboardData(req.user);
+
+  try {
+    await redis.set(
+      `dashboard:${req.user._id}`,
+      JSON.stringify(freshData),
+      "EX",
+      300
+    );
+  } catch (err) {
+    console.error("Redis set error in dashboard fallback:", err);
   }
 
   return res.status(200).json({
     success: true,
-    data: JSON.parse(cachedDashboard),
+    data: freshData,
   });
-};
+});
 const refreshDashboard = asynchandler(async (req, res) => {
     const userId = req.user._id.toString();
     const lockKey = `dashboard:refreshing:${userId}`;

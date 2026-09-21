@@ -47,6 +47,19 @@ const register = asynchandler(async (req, res) => {
         );
     }
 
+    const existedUser = await User.findOne({
+        $or: [{ email }, { username }]
+    });
+
+    if (existedUser) {
+        const message = existedUser.email === email 
+            ? "User with this email already exists" 
+            : "User with this username already exists";
+        return res.status(409).json(
+            new Apires(409, message, null)
+        );
+    }
+
     const localFilePath = req.files?.image?.[0]?.path;
 
     let image = "";
