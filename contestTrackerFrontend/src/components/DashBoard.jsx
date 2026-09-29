@@ -446,10 +446,16 @@ export default function Dashboard() {
         setData(json.data);
         setErrorMsg("");
         setStatus("ready");
+        try {
+          localStorage.setItem("ct_cached_dashboard_data", JSON.stringify(json.data));
+        } catch (e) {
+          /* quota ignored */
+        }
       });
     } catch (err) {
       setErrorMsg(err.message || "Something went wrong");
-      setStatus("error");
+      // Only set status to error if no data has been loaded yet
+      setStatus((prev) => (prev === "ready" ? "ready" : "error"));
     }
   };
 
@@ -558,6 +564,19 @@ export default function Dashboard() {
 
   useEffect(() => {
     let cancelled = false;
+
+    try {
+      const cached = localStorage.getItem("ct_cached_dashboard_data");
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (parsed && typeof parsed === "object") {
+          setData(parsed);
+          setStatus("ready");
+        }
+      }
+    } catch (e) {
+      /* ignore invalid cache */
+    }
 
     (async () => {
       if (!cancelled) {
