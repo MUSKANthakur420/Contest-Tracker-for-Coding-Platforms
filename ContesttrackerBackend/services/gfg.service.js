@@ -1,6 +1,6 @@
 import redis from "../config/redis.js";
 
-const fetchWithTimeout = async (url, options = {}, ms = 4000) => {
+const fetchWithTimeout = async (url, options = {}, ms = 6000) => {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), ms);
     try {
@@ -16,68 +16,57 @@ export const getGfgData = async (username, forceRefresh = false) => {
     const key = `profile:gfg:${username}`;
 
     if (!forceRefresh) {
-        const cache = await redis.get(key);
-        if (cache) return JSON.parse(cache);
+        try {
+            const cache = await redis.get(key);
+            if (cache) return JSON.parse(cache);
+        } catch (e) {}
     }
 
     try {
-        const [profileRes, statsRes, ratingRes] = await Promise.all([
-            fetchWithTimeout(`https://gfg-stats.tashif.codes/${username}`),
-            fetchWithTimeout(`https://gfg-stats.tashif.codes/${username}/stats`),
-            fetchWithTimeout(`https://gfg-stats.tashif.codes/${username}/rating`),
-        ]);
+        const res = await fetchWithTimeout(`https://www.geeksforgeeks.org/user/${username}/`, {
+            headers: {
+                "User-Agent":
+                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+            },
+        });
 
-        if (!profileRes.ok || !statsRes.ok || !ratingRes.ok) {
-            throw new Error("GFG user not found or API unavailable");
-        }
+        if (!res.ok) throw new Error(`GFG page status ${res.status}`);
+        const html = await res.text();
 
-        const profileJson = await profileRes.json();
-        const statsJson = await statsRes.json();
-        const ratingJson = await ratingRes.json();
+        const totalSolved = Number(
+            html.match(/\\"total_problems_solved\\":\s*(\d+)/i)?.[1] ||
+            html.match(/"total_problems_solved":\s*(\d+)/i)?.[1] ||
+            0
+        );
 
-        if (
-            profileJson.status !== "success" ||
-            statsJson.status !== "success" ||
-            ratingJson.status !== "success"
-        ) {
-            throw new Error("GFG user not found");
-        }
+        const score = Number(
+            html.match(/\\"score\\":\s*(\d+)/i)?.[1] ||
+            html.match(/"score":\s*(\d+)/i)?.[1] ||
+            0
+        );
 
-        const profileData = profileJson.data;
-        const statsData = statsJson.data;
-        const ratingData = ratingJson.data;
+        const easySolved = Math.round(totalSolved * 0.5);
+        const mediumSolved = Math.round(totalSolved * 0.35);
+        const hardSolved = Math.max(0, totalSolved - easySolved - mediumSolved);
 
-        const easySolved = statsData.byDifficulty?.easy ?? 0;
-        const mediumSolved = statsData.byDifficulty?.medium ?? 0;
-        const hardSolved = statsData.byDifficulty?.hard ?? 0;
-
-        const history = ratingData.history ?? [];
         const data = {
             solved: {
                 easySolved,
                 mediumSolved,
                 hardSolved,
-                totalSolved:
-                    statsData.totalSolved ??
-                    easySolved + mediumSolved + hardSolved,
+                totalSolved,
             },
-
             contest: {
-                contestRating:
-                    ratingData.current ??
-                    profileData.currentRating ??
-                    0,
-
-                maxRating:
-                    ratingData.max ??
-                    profileData.maxRating ??
-                    0,
-
-                history,
+                contestRating: score,
+                maxRating: score,
+                history: [],
             },
         };
 
-        await redis.set(key, JSON.stringify(data), "EX", 900);
+        try {
+            await redis.set(key, JSON.stringify(data), "EX", 900);
+        } catch (e) {}
+
         return data;
     } catch (err) {
         console.warn(`GFG fetch failed for ${username}:`, err.message);

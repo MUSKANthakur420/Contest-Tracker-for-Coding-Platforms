@@ -800,17 +800,19 @@ export default function Dashboard() {
      CP RING
   ========================================================= */
 
-  const cpSegments = ["codeforces", "codechef", "atcoder", "hackerrank"].map((key) => {
-    const row = platformRows.find((p) => p.key === key);
+  const cpSegments = ["codeforces", "codechef", "atcoder", "hackerrank"]
+    .map((key) => {
+      const row = platformRows.find((p) => p.key === key);
 
-    return {
-      key,
-      ...PLATFORM_META[key],
-      label: row?.label ?? PLATFORM_META[key].label,
-      value: row?.solved ?? 0,
-      notConnected: !row?.connected,
-    };
-  });
+      return {
+        key,
+        ...PLATFORM_META[key],
+        label: row?.label ?? PLATFORM_META[key].label,
+        value: row?.solved ?? 0,
+        notConnected: !row?.connected,
+      };
+    })
+    .filter((seg) => !seg.notConnected);
 
   const totalSolvedAcrossPlatforms = data.totalSolved ?? 0;
 
@@ -1062,41 +1064,6 @@ export default function Dashboard() {
             </div>
           )}
 
-          {allBadges.length > 0 && (
-            <div className="ct-card" style={s.card}>
-              <SectionLabel dot="#F7B84B">Badges & Achievements · {allBadges.length}</SectionLabel>
-
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginTop: 12 }}>
-                {allBadges.map((b, idx) => (
-                  <div
-                    key={idx}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 8,
-                      background: "rgba(255, 255, 255, 0.03)",
-                      border: "1px solid rgba(255, 255, 255, 0.08)",
-                      borderRadius: 10,
-                      padding: "8px 12px",
-                    }}
-                    title={`${b.name} (${b.platform})`}
-                  >
-                    {b.icon ? (
-                      <img src={b.icon} alt={b.name} style={{ width: 24, height: 24, objectFit: "contain" }} />
-                    ) : (
-                      <Award size={20} color="#F7B84B" />
-                    )}
-                    <div style={{ display: "flex", flexDirection: "column" }}>
-                      <span style={{ fontSize: 12, fontWeight: 600, color: "#E6E8EF" }}>{b.name}</span>
-                      <span style={{ fontSize: 10, color: "#8A90A6" }}>
-                        {b.platform} {b.stars ? `· ${b.stars}★` : ""}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
 
         {/* RIGHT */}
@@ -1186,9 +1153,46 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* CONTEST HISTORY */}
+        {/* BADGES & ACHIEVEMENTS AT THE BOTTOM */}
 
-        <ContestHistory items={contestHistory} labels={labelFor} />
+        {allBadges.length > 0 && (
+          <div
+            className="ct-card ct-below-fold"
+            style={{ ...s.card, gridArea: "contests" }}
+          >
+            <SectionLabel dot="#F7B84B">Badges & Achievements · {allBadges.length}</SectionLabel>
+
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 12, marginTop: 14 }}>
+              {allBadges.map((b, idx) => (
+                <div
+                  key={idx}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 10,
+                    background: "rgba(255, 255, 255, 0.03)",
+                    border: "1px solid rgba(255, 255, 255, 0.08)",
+                    borderRadius: 12,
+                    padding: "10px 14px",
+                  }}
+                  title={`${b.name} (${b.platform})`}
+                >
+                  {b.icon ? (
+                    <img src={b.icon} alt={b.name} style={{ width: 28, height: 28, objectFit: "contain" }} />
+                  ) : (
+                    <Award size={22} color="#F7B84B" />
+                  )}
+                  <div style={{ display: "flex", flexDirection: "column" }}>
+                    <span style={{ fontSize: 13, fontWeight: 600, color: "#E6E8EF" }}>{b.name}</span>
+                    <span style={{ fontSize: 11, color: "#8A90A6" }}>
+                      {b.platform} {b.stars ? `· ${b.stars}★` : ""}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
