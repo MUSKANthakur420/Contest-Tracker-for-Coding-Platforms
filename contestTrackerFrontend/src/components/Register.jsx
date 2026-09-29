@@ -10,6 +10,7 @@ function Register() {
     const [password, setpassword] = useState("");
     const [leetcode, setleetcode] = useState("");
     const [codeforces, setcodeforces] = useState("");
+    const [codechef, setcodechef] = useState("");
     const [atcoder, setatcoder] = useState("");
     const [hackerrank, sethackerrank] = useState("");
     const [naukri, setnaukri] = useState("");
@@ -36,6 +37,7 @@ function Register() {
                 password,
                 leetcode,
                 codeforces,
+                codechef,
                 atcoder,
                 gfg,
                 hackerrank,
@@ -105,6 +107,13 @@ function Register() {
                         placeholder='Enter your codeforces username'
                         onChange={(e) => setcodeforces(e.target.value)}
                         value={codeforces}
+                        className="bg-[#0b0e14] border border-[#232838] rounded-lg px-3.5 py-2.5 text-sm text-[#e6e8ef] placeholder:text-[#545b70] outline-none focus:border-[#4f8cff] transition-colors"
+                    />
+                    <input
+                        type='text'
+                        placeholder='Enter your codechef username'
+                        onChange={(e) => setcodechef(e.target.value)}
+                        value={codechef}
                         className="bg-[#0b0e14] border border-[#232838] rounded-lg px-3.5 py-2.5 text-sm text-[#e6e8ef] placeholder:text-[#545b70] outline-none focus:border-[#4f8cff] transition-colors"
                     />
                     <input

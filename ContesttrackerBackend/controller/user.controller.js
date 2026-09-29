@@ -84,6 +84,8 @@ const register = asynchandler(async (req, res) => {
         image = uploadImage?.secure_url || "";
     }
 
+    const cleanStr = (s) => (!s || s === "undefined" || s === "null" ? "" : s);
+
     const newUser = await User.create({
         username,
         phone,
@@ -91,13 +93,13 @@ const register = asynchandler(async (req, res) => {
         password,
         image,
         codingProfiles: {
-            leetcode: leetcode || "",
-            codeforces: codeforces || "",
-            codechef: codechef || "",
-            atcoder: atcoder || "",
-            gfg: gfg || "",
-            hackerrank: hackerrank || "",
-            naukri: naukri || ""
+            leetcode: cleanStr(leetcode),
+            codeforces: cleanStr(codeforces),
+            codechef: cleanStr(codechef),
+            atcoder: cleanStr(atcoder),
+            gfg: cleanStr(gfg),
+            hackerrank: cleanStr(hackerrank),
+            naukri: cleanStr(naukri)
         }
     });
     const { accessToken, refreshToken } =
@@ -205,33 +207,30 @@ const updateUser = asynchandler(async (req, res) => {
         password,
         leetcode,
         codeforces,
+        codechef,
         atcoder,
         gfg,
         hackerrank,
         naukri
     } = req.body;
 
+    const sanitize = (val, prev) => {
+        if (val === undefined) return prev;
+        if (val === "undefined" || val === "null") return "";
+        return val;
+    };
+
     if (username) user.username = username;
     if (email) user.email = email;
     if (password) user.password = password;
 
-    user.codingProfiles.leetcode =
-        leetcode ?? user.codingProfiles.leetcode;
-
-    user.codingProfiles.codeforces =
-        codeforces ?? user.codingProfiles.codeforces;
-
-    user.codingProfiles.atcoder =
-        atcoder ?? user.codingProfiles.atcoder;
-
-    user.codingProfiles.gfg =
-        gfg ?? user.codingProfiles.gfg;
-
-    user.codingProfiles.hackerrank =
-        hackerrank ?? user.codingProfiles.hackerrank;
-
-    user.codingProfiles.naukri =
-        naukri ?? user.codingProfiles.naukri;
+    user.codingProfiles.leetcode = sanitize(leetcode, user.codingProfiles.leetcode);
+    user.codingProfiles.codeforces = sanitize(codeforces, user.codingProfiles.codeforces);
+    user.codingProfiles.codechef = sanitize(codechef, user.codingProfiles.codechef);
+    user.codingProfiles.atcoder = sanitize(atcoder, user.codingProfiles.atcoder);
+    user.codingProfiles.gfg = sanitize(gfg, user.codingProfiles.gfg);
+    user.codingProfiles.hackerrank = sanitize(hackerrank, user.codingProfiles.hackerrank);
+    user.codingProfiles.naukri = sanitize(naukri, user.codingProfiles.naukri);
 
     if (req.files?.image?.[0]) {
         const uploadImage = await uploadFileOnCloudinary(

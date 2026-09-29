@@ -38,16 +38,18 @@ function Edit() {
                 const data = await res.json();
                 const user = data.user || data.data?.user || data.data;
 
-                setName(user.username);
-                setEmail(user.email);
+                const clean = (val) => (!val || val === "undefined" || val === "null" ? "" : val);
 
-                setLeetcode(user.codingProfiles?.leetcode || "");
-                setCodeforces(user.codingProfiles?.codeforces || "");
-                setCodechef(user.codingProfiles?.codechef || "");
-                setAtcoder(user.codingProfiles?.atcoder || "");
-                setGfg(user.codingProfiles?.gfg || "");
-                setHackerrank(user.codingProfiles?.hackerrank || "");
-                setNaukri(user.codingProfiles?.naukri || "");
+                setName(clean(user.username));
+                setEmail(clean(user.email));
+
+                setLeetcode(clean(user.codingProfiles?.leetcode));
+                setCodeforces(clean(user.codingProfiles?.codeforces));
+                setCodechef(clean(user.codingProfiles?.codechef));
+                setAtcoder(clean(user.codingProfiles?.atcoder));
+                setGfg(clean(user.codingProfiles?.gfg));
+                setHackerrank(clean(user.codingProfiles?.hackerrank));
+                setNaukri(clean(user.codingProfiles?.naukri));
 
                 if (user.image) setPreviewUrl(user.image);
             } catch (err) {

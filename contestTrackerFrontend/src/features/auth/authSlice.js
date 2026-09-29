@@ -1,20 +1,21 @@
 import {createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import axios from "../../utils/axios";
 export const registerUser = createAsyncThunk("auth/registerUser", async ({
-    username,phone,email, password, leetcode, codeforces, atcoder, gfg,hackerank,naukri, img
+    username,phone,email, password, leetcode, codeforces, codechef, atcoder, gfg, hackerrank, hackerank, naukri, img
 }, { rejectWithValue }) => {
     try {
         const formData = new FormData();
-        formData.append("username", username);
-        formData.append("phone", phone);
-        formData.append("email", email);
-        formData.append("password", password);
-        formData.append("leetcode", leetcode);
-        formData.append("codeforces", codeforces);
-        formData.append("atcoder", atcoder);
-        formData.append("gfg", gfg);
-        formData.append("hackerrank", hackerank);
-        formData.append("naukri", naukri);
+        formData.append("username", username || "");
+        formData.append("phone", phone || "");
+        formData.append("email", email || "");
+        formData.append("password", password || "");
+        formData.append("leetcode", leetcode || "");
+        formData.append("codeforces", codeforces || "");
+        formData.append("codechef", codechef || "");
+        formData.append("atcoder", atcoder || "");
+        formData.append("gfg", gfg || "");
+        formData.append("hackerrank", hackerrank || hackerank || "");
+        formData.append("naukri", naukri || "");
         if (img) formData.append("image", img);
 
         const user = await axios.post("/api/v1/users/register", formData, {
@@ -33,20 +34,21 @@ export const registerUser = createAsyncThunk("auth/registerUser", async ({
     }
 });
 export const updateUser = createAsyncThunk("auth/updateUser", async ({
-    username,phone, email, password, leetcode, codeforces, atcoder, gfg,hackerank,naukri, img
+    username,phone, email, password, leetcode, codeforces, codechef, atcoder, gfg, hackerrank, hackerank, naukri, img
 }, { rejectWithValue }) => {
     try {
         const formData = new FormData();
-        formData.append("username", username);
-        formData.append("phone", phone);
-        formData.append("email", email);
-        formData.append("password", password);
-        formData.append("leetcode", leetcode);
-        formData.append("codeforces", codeforces);
-        formData.append("atcoder", atcoder);
-        formData.append("gfg", gfg);
-        formData.append("hackerrank", hackerank);
-        formData.append("naukri", naukri);
+        formData.append("username", username || "");
+        formData.append("phone", phone || "");
+        formData.append("email", email || "");
+        formData.append("password", password || "");
+        formData.append("leetcode", leetcode || "");
+        formData.append("codeforces", codeforces || "");
+        formData.append("codechef", codechef || "");
+        formData.append("atcoder", atcoder || "");
+        formData.append("gfg", gfg || "");
+        formData.append("hackerrank", hackerrank || hackerank || "");
+        formData.append("naukri", naukri || "");
         if (img) formData.append("image", img);
 
         const user = await axios.post("/api/v1/users/updateAccount", formData, {
