@@ -1,10 +1,12 @@
 import redis from "../config/redis.js";
-export const getCodeforcesData = async (handle) => {
+export const getCodeforcesData = async (handle, forceRefresh = false) => {
     if(!handle) return null;
     const key=`profile:codeForces:${handle}`;
-    const cache=await redis.get(key);
-    if(cache)
-        return JSON.parse(cache);
+    if (!forceRefresh) {
+        const cache=await redis.get(key);
+        if(cache)
+            return JSON.parse(cache);
+    }
 
     const [info, rating, submissions] = await Promise.all([
         fetch(`https://codeforces.com/api/user.info?handles=${handle}`),

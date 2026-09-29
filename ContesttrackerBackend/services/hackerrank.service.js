@@ -40,15 +40,17 @@ const findEmbeddedJson = ($, keys) => {
     return found;
 };
 
-export const getHackerrankData = async (username) => {
+export const getHackerrankData = async (username, forceRefresh = false) => {
     if (!username?.trim()) {
         throw new Error("HackerRank username is required.");
     }
 
     username = username.trim();
     const key=`profile:hackerrank:${username}`;
-    const cache=await redis.get(key);
-    if(cache) return JSON.parse(cache);
+    if (!forceRefresh) {
+        const cache=await redis.get(key);
+        if(cache) return JSON.parse(cache);
+    }
     console.log(`Starting HackerRank data fetch for: ${username}`);
 
     const [profileRes, badgesRes, contestRes] = await Promise.all([

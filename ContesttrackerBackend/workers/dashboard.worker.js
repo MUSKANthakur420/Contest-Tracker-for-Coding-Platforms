@@ -40,7 +40,7 @@ const worker = new Worker(
 
         console.log(`Processing dashboard for ${user._id}`);
 
-        const dashboardData = await getDashboardData(user);
+        const dashboardData = await getDashboardData(user, true);
 
         await redis.set(
             `dashboard:${user._id}`,

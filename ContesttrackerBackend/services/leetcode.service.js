@@ -41,7 +41,7 @@ const QUERY = `
 const pickCount = (acSubmissionNum = [], difficulty) =>
   acSubmissionNum.find((d) => d.difficulty === difficulty)?.count ?? 0;
 
-export const LeetcodeData = async (username) => {
+export const LeetcodeData = async (username, forceRefresh = false) => {
   if (!username || !username.trim()) {
     throw new Error(
       "LeetCode username is missing for this user's codingProfiles."
@@ -49,9 +49,11 @@ export const LeetcodeData = async (username) => {
   }
   username=username.trim()
   const key = `profile:leetcode:${username}`;
-  const cache = await redis.get(key);
-  if (cache)
-    return JSON.parse(cache);
+  if (!forceRefresh) {
+    const cache = await redis.get(key);
+    if (cache)
+      return JSON.parse(cache);
+  }
   console.log("LEETCODE FETCH START");
 
   const res = await fetch(GRAPHQL_URL, {

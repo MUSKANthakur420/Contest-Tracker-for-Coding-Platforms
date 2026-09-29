@@ -1,10 +1,12 @@
 import redis from "../config/redis.js";
-export const getGfgData = async (username) => {
+export const getGfgData = async (username, forceRefresh = false) => {
     if(!username) return null;
     const key=`profile:gfg:${username}`;
-    const cache=await redis.get(key);
-    if(cache)
-        return JSON.parse(cache);
+    if (!forceRefresh) {
+        const cache=await redis.get(key);
+        if(cache)
+            return JSON.parse(cache);
+    }
 
     const [profileRes, statsRes, ratingRes] = await Promise.all([
         fetch(`https://gfg-stats.tashif.codes/${username}`),

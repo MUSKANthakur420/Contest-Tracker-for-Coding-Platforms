@@ -11,13 +11,15 @@ const HEADERS = {
     Accept: "application/json",
 };
 
-export const getNaukriData = async (profileId) => {
+export const getNaukriData = async (profileId, forceRefresh = false) => {
     if (!profileId || !profileId.trim()) {
         throw new Error("Code360 profile ID is missing.");
     }
     const key = `profile:naukri:${profileId.trim()}`;
-    const cache=await redis.get(key)
-    if(cache) return JSON.parse(cache);
+    if (!forceRefresh) {
+        const cache=await redis.get(key);
+        if(cache) return JSON.parse(cache);
+    }
     console.log("CODE360 API FETCH START");
 
     const url = new URL(CODE360_API);

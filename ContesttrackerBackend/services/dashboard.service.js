@@ -101,8 +101,8 @@ const buildPlatformEntry = (platformKey, username) => {
     };
 };
 
-export const getDashboardData = async (user = {}) => {
-    console.log("GET DASHBOARD DATA START");
+export const getDashboardData = async (user = {}, forceRefresh = false) => {
+    console.log("GET DASHBOARD DATA START, forceRefresh:", forceRefresh);
 
     const { codingProfiles = {} } = user;
 
@@ -144,27 +144,27 @@ export const getDashboardData = async (user = {}) => {
         naukriResult,
     ] = await Promise.allSettled([
         hasUsername(leetcode)
-            ? LeetcodeData(leetcode)
+            ? LeetcodeData(leetcode, forceRefresh)
             : Promise.resolve(EMPTY_LEETCODE),
 
         hasUsername(codeforces)
-            ? getCodeforcesData(codeforces)
+            ? getCodeforcesData(codeforces, forceRefresh)
             : Promise.resolve(EMPTY_CODEFORCES),
 
         hasUsername(atcoder)
-            ? getAtcoderData(atcoder)
+            ? getAtcoderData(atcoder, forceRefresh)
             : Promise.resolve(EMPTY_ATCODER),
 
         hasUsername(gfg)
-            ? getGfgData(gfg)
+            ? getGfgData(gfg, forceRefresh)
             : Promise.resolve(EMPTY_GFG),
 
         hasUsername(hackerrank)
-            ? getHackerrankData(hackerrank)
+            ? getHackerrankData(hackerrank, forceRefresh)
             : Promise.resolve(EMPTY_HACKERRANK),
 
         hasUsername(naukri)
-            ? getNaukriData(naukri)
+            ? getNaukriData(naukri, forceRefresh)
             : Promise.resolve(EMPTY_NAUKRI),
     ]);
 
