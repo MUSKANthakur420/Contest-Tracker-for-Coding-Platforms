@@ -51,6 +51,10 @@ app.use(express.urlencoded({ extended: true })); //parses html form data and put
 app.use(cookieParser()); //cookie parses into accesstoken and refrsh token and puts it in req.cookies
 app.use(express.static("public")); //means exposes the public folder to the outside world so that it can be accessed by the frontend/browser
 
+app.get("/health", (req, res) => {
+  res.status(200).json({ status: "OK", message: "Server is awake", timestamp: new Date().toISOString() });
+});
+
 import router from "./route/user.route.js";
 
 app.use("/api/v1/users", router); //format for sending request
