@@ -27,6 +27,7 @@ const app = express();
 const allowedOrigins = [
     "http://localhost:5173",
     "http://localhost:3000",
+    "https://contest-tracker-platform.vercel.app",
     "https://contesttrackerfrontend-khaki.vercel.app",
     "https://contesttrackerfrontend-455s3qs7p.vercel.app"
 ];
