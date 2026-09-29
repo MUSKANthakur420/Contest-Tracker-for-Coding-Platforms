@@ -96,7 +96,15 @@ function prefersReducedMotion() {
    ONLY THESE 4 PLATFORMS HAVE RATINGS
 ========================================================= */
 
-const RATING_PLATFORMS = ["leetcode", "codeforces", "codechef", "atcoder", "gfg", "hackerrank"];
+const RATING_PLATFORMS = [
+  "leetcode",
+  "codeforces",
+  "codechef",
+  "atcoder",
+  "gfg",
+  "hackerrank",
+  "naukri",
+];
 
 const RATING_SOURCE = {
   leetcode: {
@@ -117,11 +125,15 @@ const RATING_SOURCE = {
   },
   gfg: {
     rating: (d) => d.gfgRating,
-    history: (d) => d.gfgRatingHistory ?? d.gfgHistory,
+    history: (d) => d.gfgRatingHistory ?? d.gfgHistory ?? [],
   },
   hackerrank: {
     rating: (d) => d.hackerrankRating,
-    history: (d) => d.hackerrankRatingHistory ?? d.hackerrankHistory,
+    history: (d) => d.hackerrankRatingHistory ?? d.hackerrankHistory ?? [],
+  },
+  naukri: {
+    rating: (d) => d.naukriRating ?? d.naukriRank ?? d.naukriSolved ?? null,
+    history: (d) => d.naukriRatingHistory ?? d.naukriHistory ?? [],
   },
 };
 
@@ -650,16 +662,32 @@ export default function Dashboard() {
 
     RATING_PLATFORMS.forEach((key) => {
       const src = RATING_SOURCE[key];
+      if (!src) return;
 
-      const points = normalizeHistory(src.history(d));
+      let points = normalizeHistory(src.history(d));
 
       const direct = toNumOrNull(src.rating(d));
 
       const lastKnown = [...points].reverse().find((p) => p.rating !== null);
 
+      const currentRating = direct ?? lastKnown?.rating ?? null;
+
+      if (points.length === 0 && currentRating !== null && currentRating > 0) {
+        points = [
+          {
+            id: `${key}-current`,
+            time: Date.now(),
+            title: "Current Rating",
+            rating: currentRating,
+            rank: null,
+            delta: null,
+          },
+        ];
+      }
+
       out[key] = {
         points,
-        rating: direct ?? lastKnown?.rating ?? null,
+        rating: currentRating,
       };
     });
 
@@ -1944,16 +1972,23 @@ function Ring({ segments, centerValue, size = 120, thickness = 13, resetKey }) {
 ========================================================= */
 
 const RatingChart = memo(function RatingChart({ points, color }) {
-  const graphData = useMemo(
-    () =>
-      points
-        .filter((p) => p.rating !== null)
-        .map((p, i) => ({
-          date: p.time ? DATE_SHORT.format(new Date(p.time)) : `#${i + 1}`,
-          rating: p.rating,
-        })),
-    [points]
-  );
+  const graphData = useMemo(() => {
+    const validPoints = points
+      .filter((p) => p.rating !== null)
+      .map((p, i) => ({
+        date: p.time ? DATE_SHORT.format(new Date(p.time)) : `#${i + 1}`,
+        rating: p.rating,
+      }));
+
+    if (validPoints.length === 1) {
+      return [
+        { date: "Start", rating: validPoints[0].rating },
+        { date: "Current", rating: validPoints[0].rating },
+      ];
+    }
+
+    return validPoints;
+  }, [points]);
 
   if (graphData.length === 0) {
     return <div style={s.emptyNote}>No contest history yet.</div>;
