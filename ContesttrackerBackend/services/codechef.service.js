@@ -60,11 +60,33 @@ export const getCodechefData = async (username, forceRefresh = false) => {
 
         const stars = starCount > 0 ? `${starCount}★` : "unrated";
 
+        const historyMatch = html.match(/all_rating\s*=\s*(\[[\s\S]*?\]);/i);
+        let history = [];
+        if (historyMatch) {
+            try {
+                const rawHist = JSON.parse(historyMatch[1]);
+                history = rawHist.map((item) => ({
+                    attended: true,
+                    rating: Number(item.rating || 0),
+                    rank: item.rank ? Number(item.rank) : null,
+                    contest: {
+                        title: item.name || item.code || "CodeChef Contest",
+                        startTime: item.end_date ? Math.floor(new Date(item.end_date).getTime() / 1000) : null,
+                    },
+                }));
+            } catch (e) {}
+        }
+
         const data = {
             rating,
             maxRating,
             stars,
             solved,
+            contest: {
+                contestRating: rating,
+                maxRating,
+                history,
+            },
         };
 
         try {
@@ -79,6 +101,11 @@ export const getCodechefData = async (username, forceRefresh = false) => {
             maxRating: 0,
             stars: "unrated",
             solved: 0,
+            contest: {
+                contestRating: 0,
+                maxRating: 0,
+                history: [],
+            },
         };
     }
 };

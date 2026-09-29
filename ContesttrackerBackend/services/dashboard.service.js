@@ -388,6 +388,9 @@ export const getDashboardData = async (user = {}, forceRefresh = false) => {
         codechefCountryRank:
             codechefData.countryRank ?? null,
 
+        codechefRatingHistory:
+            codechefData.contest?.history ?? [],
+
         // ========================================
         // ATCODER
         // ========================================
