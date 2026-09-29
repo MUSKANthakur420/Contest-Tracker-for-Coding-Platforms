@@ -3,6 +3,17 @@ const GRAPHQL_URL = "https://leetcode.com/graphql";
 const QUERY = `
   query userDashboardData($username: String!) {
     matchedUser(username: $username) {
+      badges {
+        id
+        name
+        displayName
+        icon
+        category
+      }
+      activeBadge {
+        displayName
+        icon
+      }
       submitStatsGlobal {
         acSubmissionNum {
           difficulty
@@ -130,6 +141,11 @@ export const LeetcodeData = async (username, forceRefresh = false) => {
     },
     history,
     calendar: matchedUser.userCalendar ?? null,
+    badges: (matchedUser.badges || []).map((b) => ({
+      name: b.displayName || b.name,
+      icon: b.icon ? (b.icon.startsWith("http") ? b.icon : `https://leetcode.com${b.icon}`) : null,
+      category: b.category || "LeetCode",
+    })),
   };
   await redis.set(key, JSON.stringify(result), "EX", 900);
 

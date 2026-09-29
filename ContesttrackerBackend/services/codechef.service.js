@@ -1,6 +1,6 @@
 import redis from "../config/redis.js";
 
-const fetchWithTimeout = async (url, options = {}, ms = 6000) => {
+const fetchWithTimeout = async (url, options = {}, ms = 8000) => {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), ms);
     try {
@@ -21,17 +21,44 @@ export const getCodechefData = async (username, forceRefresh = false) => {
     }
 
     try {
-        const res = await fetchWithTimeout(`https://codechef-api.vercel.app/handle/${username}`);
-        if (!res.ok) throw new Error("CodeChef API error");
-        const json = await res.json();
+        const res = await fetchWithTimeout(`https://www.codechef.com/users/${username}`, {
+            headers: {
+                "User-Agent":
+                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+            },
+        });
+
+        if (!res.ok) throw new Error(`CodeChef page returned status ${res.status}`);
+
+        const html = await res.text();
+
+        const rating = Number(
+            html.match(/class="rating-number"[^>]*>\s*(\d+)/i)?.[1] || 0
+        );
+
+        const maxRating = Number(
+            html.match(/\(Highest Rating\s*(\d+)\)/i)?.[1] || 0
+        );
+
+        const solved = Number(
+            html.match(/Total Problems Solved:\s*(\d+)/i)?.[1] ||
+            html.match(/Fully Solved\s*\((?:<b>)?(\d+)/i)?.[1] ||
+            html.match(/Total Problems Solved<\/h3>\s*<p>(\d+)/i)?.[1] ||
+            0
+        );
+
+        const starCount =
+            (html.match(/class="rating-star"[^>]*>([\s\S]*?)<\/div>/i)?.[1] || "").match(
+                /&#9733;|★/g
+            )?.length || 0;
+
+        const stars = starCount > 0 ? `${starCount}★` : "unrated";
 
         const data = {
-            rating: json.currentRating ?? 0,
-            maxRating: json.highestRating ?? 0,
-            stars: json.stars ?? "unrated",
-            globalRank: json.globalRank ?? null,
-            countryRank: json.countryRank ?? null,
-            solved: json.totalSolved ?? 0,
+            rating,
+            maxRating,
+            stars,
+            solved,
         };
 
         await redis.set(key, JSON.stringify(data), "EX", 900);
@@ -42,8 +69,6 @@ export const getCodechefData = async (username, forceRefresh = false) => {
             rating: 0,
             maxRating: 0,
             stars: "unrated",
-            globalRank: null,
-            countryRank: null,
             solved: 0,
         };
     }

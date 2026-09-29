@@ -26,6 +26,7 @@ import {
   Flame,
   Trophy,
   Crown,
+  Award,
   RefreshCw,
 } from "lucide-react";
 
@@ -742,6 +743,7 @@ export default function Dashboard() {
 
   const profile = data?.profile ?? null;
   const awards = data?.awards ?? [];
+  const allBadges = data?.allBadges ?? [];
   const contestRankings = data?.contestRankings ?? [];
 
   const connectedPlatformRows = platformRows.filter((p) => p.connected);
@@ -1054,6 +1056,42 @@ export default function Dashboard() {
                     title={a.label}
                   >
                     <Crown size={20} color="#0A0D12" />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {allBadges.length > 0 && (
+            <div className="ct-card" style={s.card}>
+              <SectionLabel dot="#F7B84B">Badges & Achievements · {allBadges.length}</SectionLabel>
+
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginTop: 12 }}>
+                {allBadges.map((b, idx) => (
+                  <div
+                    key={idx}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 8,
+                      background: "rgba(255, 255, 255, 0.03)",
+                      border: "1px solid rgba(255, 255, 255, 0.08)",
+                      borderRadius: 10,
+                      padding: "8px 12px",
+                    }}
+                    title={`${b.name} (${b.platform})`}
+                  >
+                    {b.icon ? (
+                      <img src={b.icon} alt={b.name} style={{ width: 24, height: 24, objectFit: "contain" }} />
+                    ) : (
+                      <Award size={20} color="#F7B84B" />
+                    )}
+                    <div style={{ display: "flex", flexDirection: "column" }}>
+                      <span style={{ fontSize: 12, fontWeight: 600, color: "#E6E8EF" }}>{b.name}</span>
+                      <span style={{ fontSize: 10, color: "#8A90A6" }}>
+                        {b.platform} {b.stars ? `· ${b.stars}★` : ""}
+                      </span>
+                    </div>
                   </div>
                 ))}
               </div>

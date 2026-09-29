@@ -420,9 +420,8 @@ export const getDashboardData = async (user = {}, forceRefresh = false) => {
         gfgRatingHistory:
             gfgData.contest?.history ?? [],
 
-        // ========================================
-        // HACKERRANK
-        // ========================================
+        leetcodeBadges:
+            leetcodeData.badges ?? [],
 
         hackerrankSolved:
             hackerrankData.solved ?? 0,
@@ -441,6 +440,26 @@ export const getDashboardData = async (user = {}, forceRefresh = false) => {
 
         hackerrankRatingHistory:
             hackerrankData.contest?.history ?? [],
+
+        // ========================================
+        // ALL BADGES & ACHIEVEMENTS
+        // ========================================
+
+        allBadges: [
+          ...(leetcodeData.badges ?? []).map((b) => ({
+            name: b.name || b.displayName,
+            icon: b.icon,
+            category: b.category || "LeetCode",
+            platform: "LeetCode",
+          })),
+          ...(hackerrankData.badges ?? []).map((b) => ({
+            name: b.badge_name || b.name || "HackerRank Badge",
+            icon: b.icon || null,
+            stars: b.stars || 0,
+            category: b.category_name || "HackerRank",
+            platform: "HackerRank",
+          })),
+        ],
 
         // ========================================
         // CODE360 / NAUKRI

@@ -1,8 +1,5 @@
 import redis from "../config/redis.js";
 
-const PROFILE_URL = (username) =>
-    `https://www.hackerrank.com/rest/hackers/${username}/profile`;
-
 const BADGES_URL = (username) =>
     `https://www.hackerrank.com/rest/hackers/${username}/badges`;
 
@@ -11,7 +8,7 @@ const CONTEST_URL = (username) =>
 
 const HEADERS = {
     "User-Agent":
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36",
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
     Accept: "application/json",
 };
 
@@ -28,8 +25,7 @@ export const getHackerrankData = async (username, forceRefresh = false) => {
     }
     console.log(`Starting HackerRank data fetch for: ${username}`);
 
-    const [profileRes, badgesRes, contestRes] = await Promise.allSettled([
-        fetch(PROFILE_URL(username), { headers: HEADERS }),
+    const [badgesRes, contestRes] = await Promise.allSettled([
         fetch(BADGES_URL(username), { headers: HEADERS }),
         fetch(CONTEST_URL(username), { headers: HEADERS }),
     ]);
@@ -43,21 +39,14 @@ export const getHackerrankData = async (username, forceRefresh = false) => {
         history: [],
     };
 
-    if (profileRes.status === "fulfilled" && profileRes.value.ok) {
-        try {
-            const profileJson = await profileRes.value.json();
-            const model = profileJson?.model ?? {};
-            solved = model.solved_challenges_count ?? model.score ?? 0;
-            stars = model.rank ?? model.level ?? 0;
-        } catch (err) {
-            console.warn("Error parsing HackerRank profile JSON:", err.message);
-        }
-    }
-
     if (badgesRes.status === "fulfilled" && badgesRes.value.ok) {
         try {
             const data = await badgesRes.value.json();
             badges = data?.models ?? data?.badges ?? [];
+            for (const b of badges) {
+                if (b.solved) solved += Number(b.solved);
+                if (b.stars && Number(b.stars) > stars) stars = Number(b.stars);
+            }
         } catch (err) {
             console.warn("Could not parse HackerRank badges:", err.message);
         }
@@ -86,7 +75,7 @@ export const getHackerrankData = async (username, forceRefresh = false) => {
             if (contestInfo.history.length > 0) {
                 const ratings = contestInfo.history
                     .map((c) => c.rating)
-                    .filter((r) => typeof r === "number");
+                    .filter((r) => typeof r === "number" && r > 0);
 
                 if (ratings.length > 0) {
                     contestInfo.currentRating = ratings[ratings.length - 1];
