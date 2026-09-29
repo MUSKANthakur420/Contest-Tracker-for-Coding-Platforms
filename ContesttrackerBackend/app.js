@@ -38,13 +38,16 @@ app.use(cors({
     if (
       allowedOrigins.includes(origin) ||
       origin.endsWith(".vercel.app") ||
-      origin.includes("localhost")
+      origin.includes("localhost") ||
+      origin.includes("127.0.0.1")
     ) {
-      return callback(null, true);
+      return callback(null, origin);
     }
-    return callback(new Error("Not allowed by CORS"));
+    return callback(null, origin);
   },
-  credentials: true
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept"],
 }));
 
 app.use(express.json());
