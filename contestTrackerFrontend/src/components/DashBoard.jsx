@@ -684,6 +684,50 @@ export default function Dashboard() {
   );
 
   /* =========================================================
+     ALL BADGES
+  ========================================================= */
+
+  const allBadges = useMemo(() => {
+    const list = [];
+
+    // 1. LeetCode Badges
+    if (data?.leetcodeBadges && Array.isArray(data.leetcodeBadges)) {
+      data.leetcodeBadges.forEach((b) => {
+        list.push({
+          name: b.name || b.displayName,
+          icon: b.icon,
+          category: b.category || "LeetCode",
+          platform: "LeetCode",
+        });
+      });
+    }
+
+    // 2. HackerRank Badges
+    if (data?.hackerrankBadges && Array.isArray(data.hackerrankBadges)) {
+      data.hackerrankBadges.forEach((b) => {
+        list.push({
+          name: b.badge_name || b.name || "HackerRank Badge",
+          icon: b.icon || null,
+          stars: b.stars || 0,
+          category: b.category_name || "HackerRank",
+          platform: "HackerRank",
+        });
+      });
+    }
+
+    // 3. Combined data.allBadges array
+    if (data?.allBadges && Array.isArray(data.allBadges)) {
+      data.allBadges.forEach((b) => {
+        if (!list.some((existing) => existing.name === b.name && existing.platform === b.platform)) {
+          list.push(b);
+        }
+      });
+    }
+
+    return list;
+  }, [data]);
+
+  /* =========================================================
      LOADING
   ========================================================= */
 
@@ -743,45 +787,6 @@ export default function Dashboard() {
 
   const profile = data?.profile ?? null;
   const awards = data?.awards ?? [];
-  const allBadges = useMemo(() => {
-    const list = [];
-
-    // 1. LeetCode Badges
-    if (data?.leetcodeBadges && Array.isArray(data.leetcodeBadges)) {
-      data.leetcodeBadges.forEach((b) => {
-        list.push({
-          name: b.name || b.displayName,
-          icon: b.icon,
-          category: b.category || "LeetCode",
-          platform: "LeetCode",
-        });
-      });
-    }
-
-    // 2. HackerRank Badges
-    if (data?.hackerrankBadges && Array.isArray(data.hackerrankBadges)) {
-      data.hackerrankBadges.forEach((b) => {
-        list.push({
-          name: b.badge_name || b.name || "HackerRank Badge",
-          icon: b.icon || null,
-          stars: b.stars || 0,
-          category: b.category_name || "HackerRank",
-          platform: "HackerRank",
-        });
-      });
-    }
-
-    // 3. Combined data.allBadges array
-    if (data?.allBadges && Array.isArray(data.allBadges)) {
-      data.allBadges.forEach((b) => {
-        if (!list.some((existing) => existing.name === b.name && existing.platform === b.platform)) {
-          list.push(b);
-        }
-      });
-    }
-
-    return list;
-  }, [data]);
   const contestRankings = data?.contestRankings ?? [];
 
   const connectedPlatformRows = platformRows.filter((p) => p.connected);
