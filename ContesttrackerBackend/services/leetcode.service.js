@@ -1,5 +1,6 @@
 import redis from "../config/redis.js";
 const GRAPHQL_URL = "https://leetcode.com/graphql";
+
 const QUERY = `
   query userDashboardData($username: String!) {
     matchedUser(username: $username) {
@@ -38,6 +39,20 @@ const QUERY = `
   }
 `;
 
+const BADGES_QUERY = `
+  query userBadges($username: String!) {
+    matchedUser(username: $username) {
+      badges {
+        id
+        name
+        displayName
+        icon
+        category
+      }
+    }
+  }
+`;
+
 const pickCount = (acSubmissionNum = [], difficulty) =>
   acSubmissionNum.find((d) => d.difficulty === difficulty)?.count ?? 0;
 
@@ -57,42 +72,54 @@ export const LeetcodeData = async (username, forceRefresh = false) => {
       "LeetCode username is missing for this user's codingProfiles."
     );
   }
-  username=username.trim()
+  username = username.trim();
   const key = `profile:leetcode:${username}`;
   if (!forceRefresh) {
-    const cache = await redis.get(key);
-    if (cache)
-      return JSON.parse(cache);
+    try {
+      const cache = await redis.get(key);
+      if (cache) return JSON.parse(cache);
+    } catch (e) {}
   }
   console.log("LEETCODE FETCH START");
 
-  const res = await fetchWithTimeout(GRAPHQL_URL, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Referer: `https://leetcode.com/${username}/`,
-      Origin: "https://leetcode.com",
-      "User-Agent":
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36",
-    },
-    body: JSON.stringify({
-      query: QUERY,
-      variables: { username },
-    }),
-  });
+  const headers = {
+    "Content-Type": "application/json",
+    Referer: `https://leetcode.com/${username}/`,
+    Origin: "https://leetcode.com",
+    "User-Agent":
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36",
+  };
 
-  console.log("LEETCODE FETCH END", res.status);
+  const [resResult, badgesResResult] = await Promise.allSettled([
+    fetchWithTimeout(GRAPHQL_URL, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ query: QUERY, variables: { username } }),
+    }),
+    fetchWithTimeout(GRAPHQL_URL, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ query: BADGES_QUERY, variables: { username } }),
+    }),
+  ]);
+
+  if (resResult.status === "rejected") {
+    throw new Error(`LeetCode fetch failed: ${resResult.reason?.message}`);
+  }
+
+  const res = resResult.value;
+  if (!res.ok) {
+    throw new Error(`LeetCode request failed with status ${res.status}`);
+  }
 
   const raw = await res.text();
-
   let json;
 
   try {
     json = JSON.parse(raw);
   } catch {
     throw new Error(
-      `LeetCode GraphQL returned a non-JSON response (status ${res.status}). ` +
-      `LeetCode may be rate-limiting or blocking this request.`
+      `LeetCode GraphQL returned non-JSON response (status ${res.status}).`
     );
   }
 
@@ -108,6 +135,19 @@ export const LeetcodeData = async (username, forceRefresh = false) => {
 
   if (!matchedUser) {
     throw new Error(`LeetCode user "${username}" not found.`);
+  }
+
+  let badges = [];
+  if (badgesResResult.status === "fulfilled" && badgesResResult.value.ok) {
+    try {
+      const bJson = await badgesResResult.value.json();
+      const rawBadges = bJson.data?.matchedUser?.badges ?? [];
+      badges = rawBadges.map((b) => ({
+        name: b.displayName || b.name,
+        icon: b.icon ? (b.icon.startsWith("http") ? b.icon : `https://leetcode.com${b.icon}`) : null,
+        category: b.category || "LeetCode",
+      }));
+    } catch (e) {}
   }
 
   const acSubmissionNum =
@@ -140,9 +180,12 @@ export const LeetcodeData = async (username, forceRefresh = false) => {
     },
     history,
     calendar: matchedUser.userCalendar ?? null,
-    badges: [],
+    badges,
   };
-  await redis.set(key, JSON.stringify(result), "EX", 900);
+
+  try {
+    await redis.set(key, JSON.stringify(result), "EX", 900);
+  } catch (e) {}
 
   return result;
 };

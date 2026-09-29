@@ -446,12 +446,15 @@ export const getDashboardData = async (user = {}, forceRefresh = false) => {
         // ========================================
 
         allBadges: [
+          // 1. LEETCODE
           ...(leetcodeData.badges ?? []).map((b) => ({
             name: b.name || b.displayName,
             icon: b.icon,
             category: b.category || "LeetCode",
             platform: "LeetCode",
           })),
+
+          // 2. HACKERRANK
           ...(hackerrankData.badges ?? []).map((b) => ({
             name: b.badge_name || b.name || "HackerRank Badge",
             icon: b.icon || null,
@@ -459,6 +462,39 @@ export const getDashboardData = async (user = {}, forceRefresh = false) => {
             category: b.category_name || "HackerRank",
             platform: "HackerRank",
           })),
+
+          // 3. CODECHEF STAR BADGE
+          ...(codechefData.rating > 0 ? [{
+            name: `${codechefData.stars} (${codechefData.rating} Rating)`,
+            icon: null,
+            stars: codechefData.stars,
+            category: "CodeChef Rank",
+            platform: "CodeChef",
+          }] : []),
+
+          // 4. CODEFORCES RANK BADGE
+          ...(cfInfo.rank && cfInfo.rank !== "unrated" ? [{
+            name: `${cfInfo.rank.toUpperCase()} (${cfInfo.rating} Rating)`,
+            icon: null,
+            category: "Codeforces Rank",
+            platform: "CodeForces",
+          }] : []),
+
+          // 5. GFG SOLVED BADGE
+          ...(gfgData.solved?.totalSolved > 0 ? [{
+            name: `GFG ${gfgData.solved.totalSolved}+ Solved`,
+            icon: null,
+            category: "GFG Achievement",
+            platform: "GeeksforGeeks",
+          }] : []),
+
+          // 6. CODE360 / NAUKRI SOLVED BADGE
+          ...(naukriData.solved?.totalSolved > 0 ? [{
+            name: `Code360 ${naukriData.solved.totalSolved}+ Solved`,
+            icon: null,
+            category: "Code360 Achievement",
+            platform: "Code360",
+          }] : []),
         ],
 
         // ========================================
