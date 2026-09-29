@@ -19,7 +19,7 @@ const STEPS = [
 ];
 
 const GITHUB_URL = 'https://github.com/MUSKANthakur420';
-const LINKEDIN_URL = 'https://www.linkedin.com/in/YOUR-LINKEDIN-ID'; // <- replace with your LinkedIn URL
+const LINKEDIN_URL ='https://linkedin.com/in/muskan-singh-72b338328'; // <- replace with your LinkedIn URL
 
 const BG = '#0b0e14';
 const SANS = "'Space Grotesk', 'Inter', sans-serif";
