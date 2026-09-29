@@ -1,18 +1,32 @@
 import { useState, useEffect, useMemo } from "react";
 
-// Expected shape per contest, coming from the backend now instead of mock data:
-// { id, name, platform, startTime (ms epoch), url }
-// Mounted inside user.routes.js as router.route("/contests"), under the
-// /api/v1/users prefix — so the final path is /api/v1/users/contests.
+// Expected shape per contest, coming from the backend:
+// { id, name, platform, startTime (ms epoch / seconds / ISO), url }
 const CONTESTS_API_URL =
   "https://contest-tracker-for-coding-platforms-1.onrender.com/api/v1/users/contests";
 
-const PLATFORM_COLORS = {
-  Codeforces: "#ff3d3d",
-  LeetCode: "#ffa116",
-  CodeChef: "#a25eff",
-  AtCoder: "#3f7fbf",
-};
+// Every platform the app supports, in the order the filter chips appear.
+const PLATFORMS = [
+  { name: "LeetCode", color: "#ffa116", aliases: ["leetcode", "lc"] },
+  { name: "Codeforces", color: "#4f8cff", aliases: ["codeforces", "cf"] },
+  { name: "CodeChef", color: "#d9a066", aliases: ["codechef", "cc"] },
+  { name: "AtCoder", color: "#8b7cf6", aliases: ["atcoder", "ac"] },
+  { name: "GeeksforGeeks", color: "#2fd9a8", aliases: ["geeksforgeeks", "gfg"] },
+  { name: "HackerRank", color: "#2ec866", aliases: ["hackerrank", "hr"] },
+  { name: "Code360", color: "#ff6b6b", aliases: ["code360", "naukri", "naukricode360", "codingninjas", "codingninjasstudio", "c3"] },
+];
+
+const PLATFORM_COLORS = Object.fromEntries(PLATFORMS.map((p) => [p.name, p.color]));
+
+// "codeforces", "CodeForces", "Code Forces", "gfg" -> canonical display name.
+// Unknown platforms are kept as sent, so nothing from the backend gets dropped.
+function canonicalPlatform(raw) {
+  const key = String(raw || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+  const match = PLATFORMS.find((p) => p.aliases.includes(key));
+  return match ? match.name : String(raw || "Other");
+}
+
+const colorFor = (platform) => PLATFORM_COLORS[platform] || "#4f8cff";
 
 function formatCountdown(ms) {
   if (ms <= 0) return "started";
@@ -57,16 +71,17 @@ export default function Contests() {
       }
       if (!res.ok) throw new Error(json.message || json.detail || `Request failed (${res.status})`);
 
-      // Backend may nest the array under .data or return it directly.
       const list = Array.isArray(json.data) ? json.data : Array.isArray(json) ? json : [];
 
-      // Normalize startTime to a ms epoch number regardless of whether the
-      // backend sends an ISO string, seconds, or already-ms number.
-      const normalized = list.map((c) => ({
+      const normalized = list.map((c, i) => ({
         ...c,
+        id: c.id ?? `${c.platform}-${c.name}-${i}`,
+        platform: canonicalPlatform(c.platform),
         startTime:
           typeof c.startTime === "number"
-            ? (c.startTime < 1e12 ? c.startTime * 1000 : c.startTime) // seconds -> ms
+            ? c.startTime < 1e12
+              ? c.startTime * 1000
+              : c.startTime
             : new Date(c.startTime).getTime(),
       }));
 
@@ -79,11 +94,7 @@ export default function Contests() {
   };
 
   useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      if (!cancelled) await fetchContests();
-    })();
-    return () => { cancelled = true; };
+    fetchContests();
   }, []);
 
   useEffect(() => {
@@ -91,17 +102,27 @@ export default function Contests() {
     return () => clearInterval(tick);
   }, []);
 
+  // Only upcoming contests (start time in the future), soonest first.
   const sortedContests = useMemo(
-    () => [...contests].sort((a, b) => a.startTime - b.startTime),
-    [contests]
+    () => contests.filter((c) => c.startTime > now).sort((a, b) => a.startTime - b.startTime),
+    [contests, now]
   );
 
   const nextContest = sortedContests[0];
 
-  const platforms = useMemo(
-    () => ["All", ...new Set(contests.map((c) => c.platform))],
-    [contests]
-  );
+  // All supported platforms always get a chip, plus any extra name the backend sends.
+  const chips = useMemo(() => {
+    const counts = {};
+    sortedContests.forEach((c) => {
+      counts[c.platform] = (counts[c.platform] || 0) + 1;
+    });
+    const known = PLATFORMS.map((p) => p.name);
+    const extra = Object.keys(counts).filter((n) => !known.includes(n));
+    return [
+      { name: "All", count: sortedContests.length },
+      ...[...known, ...extra].map((n) => ({ name: n, count: counts[n] || 0 })),
+    ];
+  }, [sortedContests]);
 
   const filteredContests = useMemo(
     () =>
@@ -135,7 +156,6 @@ export default function Contests() {
 
   return (
     <main className="max-w-3xl mx-auto px-6 py-10 pb-16 font-sans text-[#e6e8ef]">
-      {/* Hero: next contest countdown is the whole point of this page */}
       <section className="bg-[#131720] border border-[#232838] rounded-2xl px-8 py-9 text-center">
         <span className="inline-block font-mono text-xs tracking-widest uppercase text-[#4f8cff] mb-3">
           next up
@@ -144,7 +164,7 @@ export default function Contests() {
           <>
             <h1 className="text-2xl font-bold text-[#f2f4f8] mb-2">{nextContest.name}</h1>
             <div className="flex items-center justify-center gap-2 text-sm text-[#8a90a6] mb-5">
-              <span className="font-semibold" style={{ color: PLATFORM_COLORS[nextContest.platform] || "#4f8cff" }}>
+              <span className="font-semibold" style={{ color: colorFor(nextContest.platform) }}>
                 {nextContest.platform}
               </span>
               <span className="w-[3px] h-[3px] rounded-full bg-[#545b70]" aria-hidden="true" />
@@ -167,30 +187,34 @@ export default function Contests() {
         )}
       </section>
 
-      {/* Filter chips */}
-      {contests.length > 0 && (
-        <div className="flex flex-wrap gap-2 mt-7 mb-5">
-          {platforms.map((platform) => {
-            const isActive = activeFilter === platform;
-            return (
-              <button
-                key={platform}
-                onClick={() => setActiveFilter(platform)}
-                className="text-sm px-4 py-1.5 rounded-full border transition-colors"
-                style={{
-                  color: isActive ? PLATFORM_COLORS[platform] || "#4f8cff" : "#8a90a6",
-                  borderColor: isActive ? PLATFORM_COLORS[platform] || "#4f8cff" : "#232838",
-                  background: "#131720",
-                }}
+      {/* One chip per platform, with how many contests each has */}
+      <div className="flex flex-wrap gap-2 mt-7 mb-5">
+        {chips.map(({ name, count }) => {
+          const isActive = activeFilter === name;
+          const color = name === "All" ? "#4f8cff" : colorFor(name);
+          return (
+            <button
+              key={name}
+              onClick={() => setActiveFilter(name)}
+              className="flex items-center gap-2 text-sm px-4 py-1.5 rounded-full border transition-colors"
+              style={{
+                color: isActive ? color : "#8a90a6",
+                borderColor: isActive ? color : "#232838",
+                background: "#131720",
+              }}
+            >
+              {name}
+              <span
+                className="font-mono text-[11px] px-1.5 rounded-full"
+                style={{ background: isActive ? `${color}22` : "#ffffff0d" }}
               >
-                {platform}
-              </button>
-            );
-          })}
-        </div>
-      )}
+                {count}
+              </span>
+            </button>
+          );
+        })}
+      </div>
 
-      {/* Contest list */}
       <section className="flex flex-col gap-2.5 mt-5">
         {filteredContests.map((contest) => (
           <a
@@ -202,14 +226,14 @@ export default function Contests() {
           >
             <span
               className="w-2 h-2 rounded-full flex-shrink-0"
-              style={{ background: PLATFORM_COLORS[contest.platform] || "#4f8cff" }}
+              style={{ background: colorFor(contest.platform) }}
               aria-hidden="true"
             />
             <div className="flex flex-col gap-0.5 flex-1 min-w-0">
-              <span className="text-sm font-semibold text-[#e6e8ef] truncate">
-                {contest.name}
-              </span>
+              <span className="text-sm font-semibold text-[#e6e8ef] truncate">{contest.name}</span>
               <span className="text-xs text-[#8a90a6]">
+                <span style={{ color: colorFor(contest.platform) }}>{contest.platform}</span>
+                {" · "}
                 {new Date(contest.startTime).toLocaleString()}
               </span>
             </div>
@@ -220,7 +244,9 @@ export default function Contests() {
         ))}
         {filteredContests.length === 0 && (
           <p className="text-center text-sm text-[#8a90a6] py-8">
-            No contests tracked for this platform yet.
+            {activeFilter === "All"
+              ? "No contests tracked yet."
+              : `No upcoming ${activeFilter} contests right now.`}
           </p>
         )}
       </section>

@@ -1,5 +1,18 @@
-import  asynchandler  from "../utils/asynchandler.js";
-import  Apires from "../utils/Apires.js";
+import asynchandler from "../utils/asynchandler.js";
+import Apires from "../utils/Apires.js";
+import redis from "../config/redis.js";
+
+const CACHE_KEY = "contests:upcoming";
+const CACHE_TTL_OK = 600; // 10 min when every platform answered
+const CACHE_TTL_PARTIAL = 60; // 1 min when some platform failed, so it retries soon
+
+const BROWSER_HEADERS = {
+    "User-Agent":
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) " +
+        "AppleWebKit/537.36 (KHTML, like Gecko) " +
+        "Chrome/124.0 Safari/537.36",
+    Accept: "application/json",
+};
 
 // Wraps any fetch with a hard timeout — if a platform's API hangs, this
 // aborts it after `ms` instead of blocking the whole route forever.
@@ -73,29 +86,98 @@ const fetchAtCoderContests = async () => {
         }));
 };
 
-export const getUpcomingContests = asynchandler(async (req, res) => {
-    const results = await Promise.allSettled([
-        fetchCodeforcesContests(),
-        fetchLeetcodeContests(),
-        fetchAtCoderContests(),
-    ]);
+// Endpoint and field names below are from memory: test with curl first.
+const fetchCodechefContests = async () => {
+    const res = await fetchWithTimeout(
+        "https://www.codechef.com/api/list/contests/all?sort_by=START&sorting_order=asc&offset=0&mode=all",
+        { headers: BROWSER_HEADERS }
+    );
+    const json = await res.json();
 
+    return (json.future_contests ?? []).map((c) => ({
+        id: `cc-${c.contest_code}`,
+        name: c.contest_name,
+        platform: "CodeChef",
+        startTime: new Date(c.contest_start_date_iso).getTime(),
+        url: `https://www.codechef.com/${c.contest_code}`,
+    }));
+};
+
+// Endpoint and field names below are from memory: test with curl first.
+const fetchHackerrankContests = async () => {
+    const res = await fetchWithTimeout(
+        "https://www.hackerrank.com/rest/contests/upcoming?offset=0&limit=20",
+        { headers: BROWSER_HEADERS }
+    );
+    const json = await res.json();
+
+    return (json.models ?? []).map((c) => ({
+        id: `hr-${c.slug}`,
+        name: c.name,
+        platform: "HackerRank",
+        startTime: c.epoch_starttime * 1000,
+        url: `https://www.hackerrank.com/contests/${c.slug}`,
+    }));
+};
+
+// TODO: GeeksforGeeks and Code360 fetchers go here once their endpoints are
+// found in DevTools. Add them to FETCHERS below and nothing else changes.
+const FETCHERS = [
+    ["Codeforces", fetchCodeforcesContests],
+    ["LeetCode", fetchLeetcodeContests],
+    ["AtCoder", fetchAtCoderContests],
+    ["CodeChef", fetchCodechefContests],
+    ["HackerRank", fetchHackerrankContests],
+];
+
+const onlyUpcoming = (list) => {
+    const now = Date.now();
+    return list
+        .filter((c) => Number.isFinite(c.startTime) && c.startTime > now)
+        .sort((a, b) => a.startTime - b.startTime);
+};
+
+export const getUpcomingContests = asynchandler(async (req, res) => {
+    // 1. Serve from cache when possible (a Redis failure never breaks the route)
+    try {
+        const cached = await redis.get(CACHE_KEY);
+        if (cached) {
+            return res
+                .status(200)
+                .json(new Apires(200, "Upcoming contests fetched", onlyUpcoming(JSON.parse(cached))));
+        }
+    } catch (err) {
+        console.warn("Contests cache read failed:", err.message);
+    }
+
+    // 2. Fetch every platform in parallel; one failing doesn't affect the rest
+    const results = await Promise.allSettled(FETCHERS.map(([, fn]) => fn()));
+
+    let failed = 0;
     results.forEach((r, i) => {
         if (r.status === "rejected") {
-            console.warn(`Contest fetch ${i} failed:`, r.reason?.message || r.reason);
+            failed++;
+            console.warn(`${FETCHERS[i][0]} contests failed:`, r.reason?.message || r.reason);
         }
     });
 
-    const contests = results
-        .filter((r) => r.status === "fulfilled")
-        .flatMap((r) => r.value)
-        .sort((a, b) => a.startTime - b.startTime);
+    const contests = onlyUpcoming(
+        results.filter((r) => r.status === "fulfilled").flatMap((r) => r.value)
+    );
 
-        return res.status(200).json(
-            new Apires(
-                200,
-                "Upcoming contests fetched",
-                contests
-            )
+    // 3. Cache: short TTL if anything failed so it retries soon
+    try {
+        await redis.set(
+            CACHE_KEY,
+            JSON.stringify(contests),
+            "EX",
+            failed ? CACHE_TTL_PARTIAL : CACHE_TTL_OK
         );
+    } catch (err) {
+        console.warn("Contests cache write failed:", err.message);
+    }
+
+    return res
+        .status(200)
+        .json(new Apires(200, "Upcoming contests fetched", contests));
 });
