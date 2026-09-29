@@ -16,8 +16,10 @@ export const getCodechefData = async (username, forceRefresh = false) => {
     const key = `profile:codechef:${username}`;
 
     if (!forceRefresh) {
-        const cache = await redis.get(key);
-        if (cache) return JSON.parse(cache);
+        try {
+            const cache = await redis.get(key);
+            if (cache) return JSON.parse(cache);
+        } catch (e) {}
     }
 
     try {
@@ -33,11 +35,15 @@ export const getCodechefData = async (username, forceRefresh = false) => {
         const html = await res.text();
 
         const rating = Number(
-            html.match(/class="rating-number"[^>]*>\s*(\d+)/i)?.[1] || 0
+            html.match(/class="rating-number"[^>]*>\s*(\d+)/i)?.[1] ||
+            html.match(/rating-header[\s\S]*?class="rating-number">(\d+)/i)?.[1] ||
+            0
         );
 
         const maxRating = Number(
-            html.match(/\(Highest Rating\s*(\d+)\)/i)?.[1] || 0
+            html.match(/\(Highest Rating\s*(\d+)\)/i)?.[1] ||
+            html.match(/Highest Rating\s*(\d+)/i)?.[1] ||
+            0
         );
 
         const solved = Number(
@@ -61,7 +67,10 @@ export const getCodechefData = async (username, forceRefresh = false) => {
             solved,
         };
 
-        await redis.set(key, JSON.stringify(data), "EX", 900);
+        try {
+            await redis.set(key, JSON.stringify(data), "EX", 900);
+        } catch (e) {}
+
         return data;
     } catch (err) {
         console.warn(`CodeChef fetch failed for ${username}:`, err.message);
