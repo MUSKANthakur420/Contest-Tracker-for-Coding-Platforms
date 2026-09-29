@@ -79,11 +79,11 @@ export const getNaukriData = async (profileId, forceRefresh = false) => {
         if (level === "Easy") {
             easySolved = count;
         } 
-        else if (level === "Moderate") {
-            mediumSolved = count;
+        else if (level === "Moderate" || level === "Medium") {
+            mediumSolved += count;
         } 
-        else if (level === "Hard") {
-            hardSolved = count;
+        else if (level === "Hard" || level === "Ninja" || level === "Expert") {
+            hardSolved += count;
         }
     }
 

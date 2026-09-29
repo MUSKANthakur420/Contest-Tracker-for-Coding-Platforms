@@ -3,17 +3,6 @@ const GRAPHQL_URL = "https://leetcode.com/graphql";
 const QUERY = `
   query userDashboardData($username: String!) {
     matchedUser(username: $username) {
-      badges {
-        id
-        name
-        displayName
-        icon
-        category
-      }
-      activeBadge {
-        displayName
-        icon
-      }
       submitStatsGlobal {
         acSubmissionNum {
           difficulty
@@ -52,6 +41,16 @@ const QUERY = `
 const pickCount = (acSubmissionNum = [], difficulty) =>
   acSubmissionNum.find((d) => d.difficulty === difficulty)?.count ?? 0;
 
+const fetchWithTimeout = async (url, options = {}, ms = 6000) => {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), ms);
+    try {
+        return await fetch(url, { ...options, signal: controller.signal });
+    } finally {
+        clearTimeout(timer);
+    }
+};
+
 export const LeetcodeData = async (username, forceRefresh = false) => {
   if (!username || !username.trim()) {
     throw new Error(
@@ -67,7 +66,7 @@ export const LeetcodeData = async (username, forceRefresh = false) => {
   }
   console.log("LEETCODE FETCH START");
 
-  const res = await fetch(GRAPHQL_URL, {
+  const res = await fetchWithTimeout(GRAPHQL_URL, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -141,11 +140,7 @@ export const LeetcodeData = async (username, forceRefresh = false) => {
     },
     history,
     calendar: matchedUser.userCalendar ?? null,
-    badges: (matchedUser.badges || []).map((b) => ({
-      name: b.displayName || b.name,
-      icon: b.icon ? (b.icon.startsWith("http") ? b.icon : `https://leetcode.com${b.icon}`) : null,
-      category: b.category || "LeetCode",
-    })),
+    badges: [],
   };
   await redis.set(key, JSON.stringify(result), "EX", 900);
 
