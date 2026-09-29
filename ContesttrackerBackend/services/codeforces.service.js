@@ -1,7 +1,7 @@
 import redis from "../config/redis.js";
 export const getCodeforcesData = async (handle) => {
-    if(!username) return null;
-    const key=`profile:codeForces:${username}`;
+    if(!handle) return null;
+    const key=`profile:codeForces:${handle}`;
     const cache=await redis.get(key);
     if(cache)
         return JSON.parse(cache);

@@ -9,6 +9,10 @@ export const getAtcoderData = async (username) => {
     const res = await fetch(
         `https://atcoder-api.herokuapp.com/users/${username}`
     );
-    await redis.set(key,JSON.stringify(data),"EX",900);
-    return await res.json();
+    if (!res.ok) {
+        throw new Error(`AtCoder API error status ${res.status}`);
+    }
+    const data = await res.json();
+    await redis.set(key, JSON.stringify(data), "EX", 900);
+    return data;
 };

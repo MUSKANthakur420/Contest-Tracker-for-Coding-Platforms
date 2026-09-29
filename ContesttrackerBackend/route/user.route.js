@@ -18,13 +18,15 @@ router.route("/").get((req, res) => {
     res.send("User route is working");
 });
 router.route("/register").post(
+    limiter,
     upload.fields([{ name: "image", maxCount: 1 }]), 
     register
 );
 
-router.route("/login").post((req, res, next) => {
-    next();
-}, login);
+router.route("/login").post(
+    limiter,
+    login
+);
 
 router.route("/logout").post(VerifyJWT, logout);
 

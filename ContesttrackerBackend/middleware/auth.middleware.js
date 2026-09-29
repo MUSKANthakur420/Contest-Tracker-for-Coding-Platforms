@@ -12,7 +12,7 @@ try {
         if(!token)
             return res.status(401).json(new apierror(401,"unauthorized request"))
        const decodedToken= jwt.verify(token,process.env.ACCESS_TOKEN_SECRET)
-      const user = await User.findById(decodedToken?._id).select("-password -refreshtoken")
+      const user = await User.findById(decodedToken?._id).select("-password -refreshToken")
       if(!user){
         return res.status(401).json(new apierror(401,"Invalid access token request"))
       }

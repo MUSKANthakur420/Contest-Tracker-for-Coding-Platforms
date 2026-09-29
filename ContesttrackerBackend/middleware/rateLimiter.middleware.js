@@ -6,8 +6,8 @@ const limiter = async (req, res, next) => {
         return next();
     }
 
-    const userId = req.user._id;
-    const key = `rate_limit:${userId}:dashboard`;
+    const identifier = req.user?._id || req.ip || "global";
+    const key = `rate_limit:${identifier}`;
 
     const cnt = await redis.incr(key);
 

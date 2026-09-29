@@ -249,21 +249,25 @@ const updateUser = asynchandler(async (req, res) => {
 });
 
 const deleteUser = asynchandler(async (req, res) => {
-    const { email } = req.body;
+    const user = await User.findById(req.user._id);
 
-    const existUser = await User.findOne({ email });
-
-    if (!existUser) {
-        return res.status(400).json(
-            new Apierr(400, "User not found", null)
+    if (!user) {
+        return res.status(404).json(
+            new Apires(404, "User not found", null)
         );
     }
 
-    await User.findByIdAndDelete(existUser._id);
+    await User.findByIdAndDelete(user._id);
 
-    return res.status(200).json(
-        new Apires(200, "User deleted successfully", {})
-    );
+    const options = getCookieOptions(req);
+
+    return res
+        .status(200)
+        .clearCookie("accessToken", options)
+        .clearCookie("refreshToken", options)
+        .json(
+            new Apires(200, "User account deleted successfully", {})
+        );
 });
 
 export {
