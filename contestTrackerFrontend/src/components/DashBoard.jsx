@@ -1201,49 +1201,294 @@ export default function Dashboard() {
         </div>
 
         {/* BADGES & ACHIEVEMENTS AT THE BOTTOM */}
-
-        {allBadges.length > 0 && (
-          <div
-            className="ct-card ct-below-fold"
-            style={{ ...s.card, gridArea: "contests" }}
-          >
-            <SectionLabel dot="#F7B84B">Badges & Achievements · {allBadges.length}</SectionLabel>
-
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 12, marginTop: 14 }}>
-              {allBadges.map((b, idx) => (
-                <div
-                  key={idx}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 10,
-                    background: "rgba(255, 255, 255, 0.03)",
-                    border: "1px solid rgba(255, 255, 255, 0.08)",
-                    borderRadius: 12,
-                    padding: "10px 14px",
-                  }}
-                  title={`${b.name} (${b.platform})`}
-                >
-                  {b.icon ? (
-                    <img src={b.icon} alt={b.name} style={{ width: 28, height: 28, objectFit: "contain" }} />
-                  ) : (
-                    <Award size={22} color="#F7B84B" />
-                  )}
-                  <div style={{ display: "flex", flexDirection: "column" }}>
-                    <span style={{ fontSize: 13, fontWeight: 600, color: "#E6E8EF" }}>{b.name}</span>
-                    <span style={{ fontSize: 11, color: "#8A90A6" }}>
-                      {b.platform} {b.stars ? `· ${b.stars}★` : ""}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+        <BadgesSection allBadges={allBadges} />
       </div>
     </div>
   );
 }
+
+/* =========================================================
+   BADGES & ACHIEVEMENTS SECTION
+========================================================= */
+
+const BADGE_PLATFORMS_ORDER = [
+  "leetcode",
+  "codeforces",
+  "codechef",
+  "atcoder",
+  "gfg",
+  "hackerrank",
+  "naukri",
+];
+
+const BADGE_PLATFORM_CONFIG = {
+  leetcode: { key: "leetcode", label: "LeetCode", color: "#FFA116", mono: "LC" },
+  codeforces: { key: "codeforces", label: "Codeforces", color: "#4F8CFF", mono: "CF" },
+  codechef: { key: "codechef", label: "CodeChef", color: "#D9A066", mono: "CC" },
+  atcoder: { key: "atcoder", label: "AtCoder", color: "#8B7CF6", mono: "AC" },
+  gfg: { key: "gfg", label: "GeeksforGeeks", color: "#2FD9A8", mono: "GFG" },
+  hackerrank: { key: "hackerrank", label: "HackerRank", color: "#2EC866", mono: "HR" },
+  naukri: { key: "naukri", label: "Code360", color: "#FF6B6B", mono: "C3" },
+};
+
+function normalizePlatformKey(raw) {
+  if (!raw) return "other";
+  const str = String(raw).trim().toLowerCase();
+  if (str.includes("leetcode") || str === "lc") return "leetcode";
+  if (str.includes("codeforces") || str === "cf") return "codeforces";
+  if (str.includes("codechef") || str === "cc") return "codechef";
+  if (str.includes("atcoder") || str === "ac") return "atcoder";
+  if (str.includes("geeksforgeeks") || str.includes("gfg")) return "gfg";
+  if (str.includes("hackerrank") || str === "hr") return "hackerrank";
+  if (str.includes("naukri") || str.includes("code360") || str === "c3") return "naukri";
+  return str;
+}
+
+const BadgesSection = memo(function BadgesSection({ allBadges = [] }) {
+  const [selectedFilter, setSelectedFilter] = useState("all");
+  const [expandedPlatforms, setExpandedPlatforms] = useState({});
+
+  const { groups, counts, totalCount } = useMemo(() => {
+    const g = {
+      leetcode: [],
+      codeforces: [],
+      codechef: [],
+      atcoder: [],
+      gfg: [],
+      hackerrank: [],
+      naukri: [],
+    };
+
+    const c = {
+      leetcode: 0,
+      codeforces: 0,
+      codechef: 0,
+      atcoder: 0,
+      gfg: 0,
+      hackerrank: 0,
+      naukri: 0,
+    };
+
+    let total = 0;
+
+    allBadges.forEach((badge) => {
+      total += 1;
+      const key = normalizePlatformKey(badge.platform || badge.category);
+      if (g[key]) {
+        g[key].push(badge);
+        c[key] += 1;
+      } else {
+        if (!g[key]) g[key] = [];
+        g[key].push(badge);
+        c[key] = (c[key] || 0) + 1;
+      }
+    });
+
+    return { groups: g, counts: c, totalCount: total };
+  }, [allBadges]);
+
+  const toggleExpand = useCallback((key) => {
+    setExpandedPlatforms((prev) => ({
+      ...prev,
+      [key]: !prev[key],
+    }));
+  }, []);
+
+  if (totalCount === 0) return null;
+
+  const activePlatformKeys = selectedFilter === "all"
+    ? BADGE_PLATFORMS_ORDER.filter((k) => (groups[k]?.length || 0) > 0)
+    : [selectedFilter];
+
+  return (
+    <div
+      className="ct-card ct-below-fold"
+      style={{
+        ...s.card,
+        gridArea: "contests",
+        background: "#10141c",
+        borderColor: "#232838",
+      }}
+    >
+      <SectionLabel dot="#F7B84B">Badges & Achievements · {totalCount}</SectionLabel>
+
+      {/* FILTER CHIPS */}
+      <div
+        style={{
+          display: "flex",
+          flexWrap: "wrap",
+          gap: 8,
+          marginBottom: 20,
+        }}
+      >
+        <button
+          type="button"
+          aria-pressed={selectedFilter === "all"}
+          onClick={() => setSelectedFilter("all")}
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 6,
+            padding: "6px 12px",
+            borderRadius: 8,
+            border: selectedFilter === "all" ? "1px solid #4F8CFF" : "1px solid #232838",
+            background: selectedFilter === "all" ? "rgba(79, 140, 255, 0.15)" : "#0b0e14",
+            color: selectedFilter === "all" ? "#4F8CFF" : "#8A90A6",
+            fontSize: 12.5,
+            fontWeight: 600,
+            cursor: "pointer",
+            transition: "all 0.15s ease",
+          }}
+        >
+          <span>All</span>
+          <span style={{ opacity: 0.8, fontSize: 11, fontFamily: FONT_MONO }}>{totalCount}</span>
+        </button>
+
+        {BADGE_PLATFORMS_ORDER.map((key) => {
+          const cfg = BADGE_PLATFORM_CONFIG[key];
+          const isSelected = selectedFilter === key;
+          const count = counts[key] || 0;
+
+          return (
+            <button
+              key={key}
+              type="button"
+              aria-pressed={isSelected}
+              onClick={() => setSelectedFilter(key)}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6,
+                padding: "6px 12px",
+                borderRadius: 8,
+                border: isSelected ? `1px solid ${cfg.color}` : "1px solid #232838",
+                background: isSelected ? `${cfg.color}22` : "#0b0e14",
+                color: isSelected ? cfg.color : "#8A90A6",
+                fontSize: 12.5,
+                fontWeight: 600,
+                cursor: "pointer",
+                transition: "all 0.15s ease",
+              }}
+            >
+              <span>{cfg.label}</span>
+              <span style={{ opacity: 0.8, fontSize: 11, fontFamily: FONT_MONO }}>{count}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* PLATFORM GROUPS */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+        {activePlatformKeys.map((key) => {
+          const cfg = BADGE_PLATFORM_CONFIG[key] || {
+            label: key,
+            color: "#8A90A6",
+            mono: "?",
+          };
+
+          const badgesList = groups[key] || [];
+          if (!badgesList.length) return null;
+
+          const isExpanded = Boolean(expandedPlatforms[key]);
+          const shouldLimit = badgesList.length > 12 && !isExpanded;
+          const visibleBadges = shouldLimit ? badgesList.slice(0, 12) : badgesList;
+
+          return (
+            <div key={key} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              {/* GROUP HEADING */}
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <PlatformBadge mono={cfg.mono} color={cfg.color} size={22} />
+                <span style={{ fontSize: 14, fontWeight: 700, color: "#E6E8EF" }}>
+                  {cfg.label}
+                </span>
+                <span style={{ fontSize: 12, color: "#8A90A6", fontFamily: FONT_MONO }}>
+                  ({badgesList.length})
+                </span>
+              </div>
+
+              {/* BADGES GRID */}
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
+                {visibleBadges.map((b, idx) => (
+                  <div
+                    key={idx}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 10,
+                      background: "#10141c",
+                      border: "1px solid #232838",
+                      borderRadius: 10,
+                      padding: "8px 12px",
+                      minWidth: 140,
+                      maxWidth: 240,
+                      overflowWrap: "anywhere",
+                    }}
+                    title={`${b.name} (${cfg.label})`}
+                  >
+                    {b.icon ? (
+                      <img
+                        src={b.icon}
+                        alt={b.name}
+                        style={{ width: 26, height: 26, objectFit: "contain", flexShrink: 0 }}
+                      />
+                    ) : (
+                      <PlatformBadge mono={cfg.mono} color={cfg.color} size={24} />
+                    )}
+
+                    <div style={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
+                      <span
+                        style={{
+                          fontSize: 12,
+                          fontWeight: 600,
+                          color: "#E6E8EF",
+                          whiteSpace: "nowrap",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                        }}
+                      >
+                        {b.name}
+                      </span>
+                      <span style={{ fontSize: 10.5, color: "#8A90A6" }}>
+                        {cfg.label} {b.stars ? `· ${b.stars}★` : ""}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* COLLAPSE TOGGLE */}
+              {badgesList.length > 12 && (
+                <div style={{ marginTop: 4 }}>
+                  <button
+                    type="button"
+                    aria-expanded={isExpanded}
+                    onClick={() => toggleExpand(key)}
+                    style={{
+                      background: "none",
+                      border: "none",
+                      color: cfg.color,
+                      fontSize: 12,
+                      fontWeight: 600,
+                      cursor: "pointer",
+                      padding: "4px 0",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 4,
+                    }}
+                  >
+                    {isExpanded
+                      ? "Show less"
+                      : `Show all ${badgesList.length}`}
+                  </button>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+});
 
 /* =========================================================
    REFRESH BUTTON
