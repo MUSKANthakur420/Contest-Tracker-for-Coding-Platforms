@@ -1,5 +1,6 @@
 import { LeetcodeData } from "./leetcode.service.js";
 import { getCodeforcesData } from "./codeforces.service.js";
+import { getCodechefData } from "./codechef.service.js";
 import { getAtcoderData } from "./atcoder.service.js";
 import { getGfgData } from "./gfg.service.js";
 import { getHackerrankData } from "./hackerrank.service.js";
@@ -51,6 +52,15 @@ const EMPTY_ATCODER = {
     accepted_count: 0,
 };
 
+const EMPTY_CODECHEF = {
+    rating: 0,
+    maxRating: 0,
+    stars: "unrated",
+    globalRank: null,
+    countryRank: null,
+    solved: 0,
+};
+
 const EMPTY_HACKERRANK = {
     solved: 0,
     stars: 0,
@@ -82,6 +92,7 @@ const hasUsername = (username) =>
 const PROFILE_URL = {
     leetcode: (u) => `https://leetcode.com/${u}`,
     codeforces: (u) => `https://codeforces.com/profile/${u}`,
+    codechef: (u) => `https://www.codechef.com/users/${u}`,
     atcoder: (u) => `https://atcoder.jp/users/${u}`,
     gfg: (u) => `https://www.geeksforgeeks.org/user/${u}/`,
     hackerrank: (u) => `https://www.hackerrank.com/profile/${u}`,
@@ -109,6 +120,7 @@ export const getDashboardData = async (user = {}, forceRefresh = false) => {
     const {
         leetcode,
         codeforces,
+        codechef,
         atcoder,
         gfg,
         hackerrank,
@@ -118,6 +130,7 @@ export const getDashboardData = async (user = {}, forceRefresh = false) => {
     console.log("USER PROFILES:", {
         leetcode,
         codeforces,
+        codechef,
         atcoder,
         gfg,
         hackerrank,
@@ -127,6 +140,7 @@ export const getDashboardData = async (user = {}, forceRefresh = false) => {
     console.log("HAS USERNAME:", {
         leetcode: hasUsername(leetcode),
         codeforces: hasUsername(codeforces),
+        codechef: hasUsername(codechef),
         atcoder: hasUsername(atcoder),
         gfg: hasUsername(gfg),
         hackerrank: hasUsername(hackerrank),
@@ -138,6 +152,7 @@ export const getDashboardData = async (user = {}, forceRefresh = false) => {
     const [
         leetcodeResult,
         codeforcesResult,
+        codechefResult,
         atcoderResult,
         gfgResult,
         hackerrankResult,
@@ -150,6 +165,10 @@ export const getDashboardData = async (user = {}, forceRefresh = false) => {
         hasUsername(codeforces)
             ? getCodeforcesData(codeforces, forceRefresh)
             : Promise.resolve(EMPTY_CODEFORCES),
+
+        hasUsername(codechef)
+            ? getCodechefData(codechef, forceRefresh)
+            : Promise.resolve(EMPTY_CODECHEF),
 
         hasUsername(atcoder)
             ? getAtcoderData(atcoder, forceRefresh)
@@ -180,6 +199,11 @@ export const getDashboardData = async (user = {}, forceRefresh = false) => {
             ? codeforcesResult.value
             : EMPTY_CODEFORCES;
 
+    const codechefData =
+        codechefResult.status === "fulfilled"
+            ? codechefResult.value
+            : EMPTY_CODECHEF;
+
     const atcoderData =
         atcoderResult.status === "fulfilled"
             ? atcoderResult.value
@@ -203,6 +227,7 @@ export const getDashboardData = async (user = {}, forceRefresh = false) => {
     const failures = [
         leetcodeResult,
         codeforcesResult,
+        codechefResult,
         atcoderResult,
         gfgResult,
         hackerrankResult,
@@ -342,6 +367,28 @@ export const getDashboardData = async (user = {}, forceRefresh = false) => {
             ratingBuckets,
 
         // ========================================
+        // CODECHEF
+        // ========================================
+
+        codechefSolved:
+            codechefData.solved ?? 0,
+
+        codechefRating:
+            codechefData.rating ?? 0,
+
+        codechefMaxRating:
+            codechefData.maxRating ?? 0,
+
+        codechefStars:
+            codechefData.stars ?? "unrated",
+
+        codechefGlobalRank:
+            codechefData.globalRank ?? null,
+
+        codechefCountryRank:
+            codechefData.countryRank ?? null,
+
+        // ========================================
         // ATCODER
         // ========================================
 
@@ -424,6 +471,7 @@ export const getDashboardData = async (user = {}, forceRefresh = false) => {
         totalSolved:
             (leetcodeData.solved?.solvedProblem ?? 0) +
             solvedProblems.size +
+            (codechefData.solved ?? 0) +
             (gfgData.solved?.totalSolved ?? 0) +
             (atcoderData.accepted_count ?? 0) +
             (hackerrankData.solved ?? 0) +
@@ -466,6 +514,12 @@ export const getDashboardData = async (user = {}, forceRefresh = false) => {
                 buildPlatformEntry(
                     "codeforces",
                     codeforces
+                ),
+
+            codechef:
+                buildPlatformEntry(
+                    "codechef",
+                    codechef
                 ),
 
             atcoder:

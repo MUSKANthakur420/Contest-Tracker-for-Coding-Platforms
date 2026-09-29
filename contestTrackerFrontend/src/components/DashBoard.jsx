@@ -39,6 +39,7 @@ const PLATFORM_META = {
   leetcode: { label: "LeetCode", color: "#FFA116", mono: "LC" },
   gfg: { label: "GeeksforGeeks", color: "#2FD9A8", mono: "GFG" },
   codeforces: { label: "CodeForces", color: "#3F8FE0", mono: "CF" },
+  codechef: { label: "CodeChef", color: "#5B4638", mono: "CC" },
   atcoder: { label: "AtCoder", color: "#8B7CF6", mono: "AC" },
   hackerrank: { label: "HackerRank", color: "#2EC866", mono: "HR" },
   naukri: { label: "Code360", color: "#FF6B6B", mono: "C3" },
@@ -94,7 +95,7 @@ function prefersReducedMotion() {
    ONLY THESE 4 PLATFORMS HAVE RATINGS
 ========================================================= */
 
-const RATING_PLATFORMS = ["leetcode", "codeforces", "gfg", "hackerrank"];
+const RATING_PLATFORMS = ["leetcode", "codeforces", "codechef", "gfg", "hackerrank"];
 
 const RATING_SOURCE = {
   leetcode: {
@@ -104,6 +105,10 @@ const RATING_SOURCE = {
   codeforces: {
     rating: (d) => d.codeforcesRating,
     history: (d) => d.codeforcesRatingHistory,
+  },
+  codechef: {
+    rating: (d) => d.codechefRating,
+    history: (d) => d.codechefRatingHistory ?? d.codechefHistory ?? [],
   },
   gfg: {
     rating: (d) => d.gfgRating,
@@ -317,6 +322,7 @@ const PROFILE_URL_BUILDERS = {
   leetcode: (u) => `https://leetcode.com/u/${encodeURIComponent(u)}/`,
   gfg: (u) => `https://www.geeksforgeeks.org/user/${encodeURIComponent(u)}/`,
   codeforces: (u) => `https://codeforces.com/profile/${encodeURIComponent(u)}`,
+  codechef: (u) => `https://www.codechef.com/users/${encodeURIComponent(u)}`,
   atcoder: (u) => `https://atcoder.jp/users/${encodeURIComponent(u)}`,
   hackerrank: (u) => `https://www.hackerrank.com/profile/${encodeURIComponent(u)}`,
   naukri: (u) => `https://www.naukri.com/code360/profile/${encodeURIComponent(u)}`,
@@ -569,6 +575,7 @@ export default function Dashboard() {
       leetcode: data?.leetcodeSolved ?? 0,
       gfg: data?.gfgSolved ?? 0,
       codeforces: data?.codeforcesSolved ?? 0,
+      codechef: data?.codechefSolved ?? 0,
       atcoder: data?.atcoderSolved ?? 0,
       hackerrank: data?.hackerrankSolved ?? 0,
       naukri: data?.naukriSolved ?? 0,
@@ -791,7 +798,7 @@ export default function Dashboard() {
      CP RING
   ========================================================= */
 
-  const cpSegments = ["codeforces", "atcoder", "hackerrank"].map((key) => {
+  const cpSegments = ["codeforces", "codechef", "atcoder", "hackerrank"].map((key) => {
     const row = platformRows.find((p) => p.key === key);
 
     return {
@@ -1070,7 +1077,7 @@ export default function Dashboard() {
 
             <RingBlock
               title="Competitive Programming"
-              subtitle="CodeForces + AtCoder + HackerRank"
+              subtitle="CodeForces + CodeChef + AtCoder + HackerRank"
               segments={cpSegments}
               centerValue={cpTotal}
               resetKey={`cp-${cpTotal}`}
