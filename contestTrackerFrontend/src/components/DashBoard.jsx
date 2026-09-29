@@ -96,7 +96,7 @@ function prefersReducedMotion() {
    ONLY THESE 4 PLATFORMS HAVE RATINGS
 ========================================================= */
 
-const RATING_PLATFORMS = ["leetcode", "codeforces", "codechef", "gfg", "hackerrank"];
+const RATING_PLATFORMS = ["leetcode", "codeforces", "codechef", "atcoder", "gfg", "hackerrank"];
 
 const RATING_SOURCE = {
   leetcode: {
@@ -110,6 +110,10 @@ const RATING_SOURCE = {
   codechef: {
     rating: (d) => d.codechefRating,
     history: (d) => d.codechefRatingHistory ?? d.codechefHistory ?? [],
+  },
+  atcoder: {
+    rating: (d) => d.atcoderRating,
+    history: (d) => d.atcoderRatingHistory ?? [],
   },
   gfg: {
     rating: (d) => d.gfgRating,

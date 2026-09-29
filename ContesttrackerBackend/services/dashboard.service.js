@@ -398,6 +398,15 @@ export const getDashboardData = async (user = {}, forceRefresh = false) => {
         atcoderSolved:
             atcoderData.accepted_count ?? 0,
 
+        atcoderRating:
+            atcoderData.rating ?? 0,
+
+        atcoderMaxRating:
+            atcoderData.maxRating ?? 0,
+
+        atcoderRatingHistory:
+            atcoderData.contest?.history ?? [],
+
         // ========================================
         // GFG
         // ========================================
