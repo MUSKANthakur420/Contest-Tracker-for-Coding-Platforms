@@ -54,8 +54,11 @@ const router = createBrowserRouter([
     ]
   }
 ]);
+import { Analytics } from '@vercel/analytics/react'
+
 createRoot(document.getElementById('root')).render(
   <Provider store={store}>
     <RouterProvider router={router}/>
+    <Analytics />
   </Provider>,
 )
