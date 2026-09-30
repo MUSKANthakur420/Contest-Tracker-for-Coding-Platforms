@@ -28,6 +28,21 @@ function canonicalPlatform(raw) {
 
 const colorFor = (platform) => PLATFORM_COLORS[platform] || "#4f8cff";
 
+function formatIndianDateTime(ms) {
+  if (!ms) return "Date n/a";
+  const date = new Date(ms);
+  const formatted = new Intl.DateTimeFormat("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true,
+    timeZone: "Asia/Kolkata",
+  }).format(date);
+  return `${formatted} IST`;
+}
+
 function formatCountdown(ms) {
   if (ms <= 0) return "started";
   const totalSeconds = Math.floor(ms / 1000);
@@ -168,7 +183,7 @@ export default function Contests() {
                 {nextContest.platform}
               </span>
               <span className="w-[3px] h-[3px] rounded-full bg-[#545b70]" aria-hidden="true" />
-              <span>{new Date(nextContest.startTime).toLocaleString()}</span>
+              <span>{formatIndianDateTime(nextContest.startTime)}</span>
             </div>
             <div className="font-mono text-5xl font-semibold tracking-tight text-[#4f8cff] mb-5 tabular-nums">
               {formatCountdown(nextContest.startTime - now)}
@@ -234,7 +249,7 @@ export default function Contests() {
               <span className="text-xs text-[#8a90a6]">
                 <span style={{ color: colorFor(contest.platform) }}>{contest.platform}</span>
                 {" · "}
-                {new Date(contest.startTime).toLocaleString()}
+                {formatIndianDateTime(contest.startTime)}
               </span>
             </div>
             <span className="font-mono text-sm text-[#4f8cff] tabular-nums whitespace-nowrap">

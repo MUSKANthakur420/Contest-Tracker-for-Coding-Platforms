@@ -65,22 +65,24 @@ const COOLDOWN_KEY = "ct_refresh_available_at";
 const POLL_INTERVAL_MS = 2000;
 const POLL_TIMEOUT_MS = 3 * 60 * 1000;
 
-const DATE_SHORT = new Intl.DateTimeFormat("en-GB", {
+const DATE_SHORT = new Intl.DateTimeFormat("en-IN", {
   day: "2-digit",
   month: "short",
+  timeZone: "Asia/Kolkata",
 });
 
-const DATE_FULL = new Intl.DateTimeFormat("en-GB", {
+const DATE_FULL = new Intl.DateTimeFormat("en-IN", {
   day: "2-digit",
   month: "short",
   year: "numeric",
+  timeZone: "Asia/Kolkata",
 });
 
-const DATE_FULL_UTC = new Intl.DateTimeFormat("en-GB", {
+const DATE_FULL_LOCAL = new Intl.DateTimeFormat("en-IN", {
   day: "2-digit",
   month: "short",
   year: "numeric",
-  timeZone: "UTC",
+  timeZone: "Asia/Kolkata",
 });
 
 function prefersReducedMotion() {
@@ -2380,7 +2382,7 @@ const Heatmap = memo(function Heatmap({ activeDaysList, activeDaysCounts }) {
             hot,
             title: `${
               active ? `Solved${count ? ` (${count})` : ""}` : "No activity"
-            } — ${DATE_FULL_UTC.format(cursor)}`,
+            } — ${DATE_FULL_LOCAL.format(cursor)}`,
           });
         }
 
