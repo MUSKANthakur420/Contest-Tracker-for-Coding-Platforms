@@ -1,9 +1,50 @@
 import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
+import { v4: uuidv4 } from 'uuid';
 
 const app = express();
 
+// Request ID middleware for tracing
+app.use((req, res, next) => {
+  req.id = uuidv4();
+  res.setHeader('X-Request-ID', req.id);
+  next();
+});
+
+// Security headers
+app.use((req, res, next) => {
+  // Prevent clickjacking
+  res.setHeader('X-Frame-Options', 'DENY');
+
+  // Prevent MIME type sniffing
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+
+  // Enable XSS protection (legacy but still useful)
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+
+  // Referrer policy
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+
+  // Prevent IE from opening untrusted HTML
+  res.setHeader('X-Download-Options', 'noopen');
+
+  // Prevent IE from executing downloads in context
+  res.setHeader('X-Permitted-Cross-Domain-Policies', 'none');
+
+  // HSTS would be good if we serve HTTPS directly, but Render handles TLS
+  // Only enable if we're sure we serve HTTPS directly
+  // if (req.secure || req.headers['x-forwarded-proto'] === 'https') {
+  //   res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+  // }
+
+  next();
+});
+
+app.use(express.json({ limit: '10kb' })); // Limit JSON payload size
+app.use(express.urlencoded({ extended: true, limit: '10kb' })); // Limit URL-encoded payload
+
+app.use(cookieParser());
 
 // CORS (Cross-Origin Resource Sharing) allow karta hai ki dusri origin (frontend) tumhare backend ko request bhej sake.
 
@@ -41,18 +82,16 @@ app.use(cors({
       origin.includes("localhost") ||
       origin.includes("127.0.0.1")
     ) {
-      return callback(null, origin);
+      return callback(null, true); // FIXED: Return boolean, not origin
     }
-    return callback(null, origin);
+    // REJECT unknown origins
+    return callback(new Error("Not allowed by CORS"));
   },
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept"],
 }));
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: true })); //parses html form data and puts it in req.body and extended means to allow nested objects
-app.use(cookieParser()); //cookie parses into accesstoken and refrsh token and puts it in req.cookies
 app.use(express.static("public")); //means exposes the public folder to the outside world so that it can be accessed by the frontend/browser
 
 app.get("/health", (req, res) => {
