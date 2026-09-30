@@ -4,6 +4,7 @@ import cookieParser from "cookie-parser";
 import { randomUUID } from "node:crypto";
 
 const app = express();
+app.disable("x-powered-by");
 
 // Request ID middleware for tracing
 app.use((req, res, next) => {
@@ -105,6 +106,13 @@ app.use("/api/v1/users", router); //format for sending request
 // Global Error Handler Middleware
 app.use((err, req, res, next) => {
   console.error("Global Error Handler caught:", err);
+  if (err.code === "LIMIT_FILE_SIZE") {
+    return res.status(400).json({
+      success: false,
+      message: "Profile image is too large. Maximum allowed file size is 5 MB.",
+      error: "LIMIT_FILE_SIZE"
+    });
+  }
   const statusCode = err.statuscode || err.statusCode || 500;
   const message = err.message || "Internal Server Error";
   return res.status(statusCode).json({
