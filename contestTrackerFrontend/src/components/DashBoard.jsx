@@ -2412,7 +2412,7 @@ const Heatmap = memo(function Heatmap({ activeDaysList, activeDaysCounts }) {
     return { cells: cellList, monthLabels: labels, weekCount: weekIndex };
   }, [activeDaysList, activeDaysCounts, tagdaThreshold]);
 
-  const weekdays = ["Mon", "", "Wed", "", "Fri", "", ""];
+  const weekdays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
   return (
     <div
@@ -2422,10 +2422,10 @@ const Heatmap = memo(function Heatmap({ activeDaysList, activeDaysCounts }) {
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: `28px repeat(${weekCount},14px)`,
+          gridTemplateColumns: `32px repeat(${weekCount},14px)`,
           gridTemplateRows: "18px repeat(7,14px)",
           gap: 3,
-          minWidth: weekCount * 17,
+          minWidth: weekCount * 17 + 16,
         }}
       >
         {monthLabels.map((m) => (
@@ -2452,9 +2452,11 @@ const Heatmap = memo(function Heatmap({ activeDaysList, activeDaysCounts }) {
               gridColumn: 1,
               gridRow: i + 2,
               color: "#8A93A6",
-              fontSize: 10,
+              fontSize: 9.5,
+              fontWeight: 500,
               textAlign: "right",
-              paddingRight: 4,
+              paddingRight: 6,
+              lineHeight: "14px",
             }}
           >
             {d}

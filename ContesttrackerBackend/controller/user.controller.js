@@ -4,19 +4,22 @@ import Apires from "../utils/Apires.js";
 import asynchandler from "../utils/asynchandler.js";
 import uploadFileOnCloudinary from "../utils/cloudinary.js";
 
-const AccessTokenandRefreshToken = async (userid) => {
+const AccessTokenandRefreshToken = async (userOrId) => {
     try {
-        const user = await User.findById(userid);
+        const user = typeof userOrId === "object" && typeof userOrId.generateAccessToken === "function"
+            ? userOrId
+            : await User.findById(userOrId);
 
-        const accessToken = await user.generateAccessToken();
-        const refreshToken = await user.generateRefreshToken();
+        if (!user) throw new Apierr(404, "User not found");
 
-        user.refreshToken = refreshToken;
-        await user.save({ validateBeforeSave: false });
+        const accessToken = user.generateAccessToken();
+        const refreshToken = user.generateRefreshToken();
+
+        await User.updateOne({ _id: user._id }, { $set: { refreshToken } });
 
         return { accessToken, refreshToken };
     } catch (error) {
-        throw new Apierr(404, error.message);
+        throw new Apierr(500, error.message);
     }
 };
 
@@ -64,7 +67,7 @@ const register = asynchandler(async (req, res) => {
 
     const existedUser = await User.findOne({
         $or: [{ email }, { username }]
-    });
+    }).lean();
 
     if (existedUser) {
         const message = existedUser.email === email 
@@ -102,24 +105,26 @@ const register = asynchandler(async (req, res) => {
             naukri: cleanStr(naukri)
         }
     });
-    const { accessToken, refreshToken } =
-    await AccessTokenandRefreshToken(newUser._id);
 
-const registeredUser = await User.findById(newUser._id)
-    .select("-password -refreshToken");
+    const { accessToken, refreshToken } = await AccessTokenandRefreshToken(newUser);
 
-const options = getCookieOptions(req);
+    const registeredUser = newUser.toObject();
+    delete registeredUser.password;
+    delete registeredUser.refreshToken;
 
-return res
-    .status(201)
-    .cookie("accessToken", accessToken, options)
-    .cookie("refreshToken", refreshToken, options)
-    .json(
-        new Apires(201, "User registered successfully", {
-            user: registeredUser,
-            accessToken
-        })
-    )});
+    const options = getCookieOptions(req);
+
+    return res
+        .status(201)
+        .cookie("accessToken", accessToken, options)
+        .cookie("refreshToken", refreshToken, options)
+        .json(
+            new Apires(201, "User registered successfully", {
+                user: registeredUser,
+                accessToken
+            })
+        );
+});
 
 const login = asynchandler(async (req, res) => {
     const { email, password } = req.body;
@@ -146,11 +151,11 @@ const login = asynchandler(async (req, res) => {
         );
     }
 
-    const { accessToken, refreshToken } =
-        await AccessTokenandRefreshToken(user._id);
+    const { accessToken, refreshToken } = await AccessTokenandRefreshToken(user);
 
-    const newuser = await User.findById(user._id)
-        .select("-password -refreshToken");
+    const newuser = user.toObject();
+    delete newuser.password;
+    delete newuser.refreshToken;
 
     const options = getCookieOptions(req);
 
