@@ -1,13 +1,13 @@
 import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
-import { v4: uuidv4 } from 'uuid';
+import { randomUUID } from "node:crypto";
 
 const app = express();
 
 // Request ID middleware for tracing
 app.use((req, res, next) => {
-  req.id = uuidv4();
+  req.id = randomUUID();
   res.setHeader('X-Request-ID', req.id);
   next();
 });
