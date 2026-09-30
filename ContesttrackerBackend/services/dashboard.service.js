@@ -243,6 +243,16 @@ export const getDashboardData = async (user = {}, forceRefresh = false) => {
         );
     }
 
+function toMs(v) {
+    if (v === null || v === undefined || v === "") return null;
+    if (typeof v === "number" || /^\d+(\.\d+)?$/.test(String(v))) {
+        const n = Number(v);
+        return n < 1e12 ? n * 1000 : n;
+    }
+    const t = Date.parse(v);
+    return Number.isNaN(t) ? null : t;
+}
+
     // ----------------------------------------
     // CODEFORCES SUBMISSIONS
     // ----------------------------------------
@@ -307,6 +317,81 @@ export const getDashboardData = async (user = {}, forceRefresh = false) => {
             }
         } catch {
             // malformed calendar string
+        }
+    }
+
+    // ----------------------------------------
+    // CODECHEF DATES
+    // ----------------------------------------
+
+    if (codechefData.contest?.history && Array.isArray(codechefData.contest.history)) {
+        for (const c of codechefData.contest.history) {
+            const time = c.startTime || c.date || c.endTime;
+            if (time) {
+                const dateMs = toMs(time);
+                if (dateMs) {
+                    const date = new Date(dateMs).toISOString().split("T")[0];
+                    if (date && date !== "1970-01-01") {
+                        activeDays.add(date);
+                        activeDaysCounts[date] = (activeDaysCounts[date] || 0) + 1;
+                    }
+                }
+            }
+        }
+    }
+
+    // ----------------------------------------
+    // HACKERRANK DATES
+    // ----------------------------------------
+
+    if (hackerrankData.contest?.history && Array.isArray(hackerrankData.contest.history)) {
+        for (const c of hackerrankData.contest.history) {
+            const time = c.startTime || c.epoch_starttime || c.endTime;
+            if (time) {
+                const dateMs = toMs(time);
+                if (dateMs) {
+                    const date = new Date(dateMs).toISOString().split("T")[0];
+                    if (date && date !== "1970-01-01") {
+                        activeDays.add(date);
+                        activeDaysCounts[date] = (activeDaysCounts[date] || 0) + 1;
+                    }
+                }
+            }
+        }
+    }
+
+    // ----------------------------------------
+    // ATCODER DATES
+    // ----------------------------------------
+
+    if (atcoderData.contest?.history && Array.isArray(atcoderData.contest.history)) {
+        for (const c of atcoderData.contest.history) {
+            const time = c.startTime || c.EndTime || c.date;
+            if (time) {
+                const dateMs = toMs(time);
+                if (dateMs) {
+                    const date = new Date(dateMs).toISOString().split("T")[0];
+                    if (date && date !== "1970-01-01") {
+                        activeDays.add(date);
+                        activeDaysCounts[date] = (activeDaysCounts[date] || 0) + 1;
+                    }
+                }
+            }
+        }
+    }
+
+    // ----------------------------------------
+    // CODE360 / NAUKRI STREAK DATES
+    // ----------------------------------------
+
+    if (naukriData.streak && naukriData.streak > 0) {
+        const today = new Date();
+        for (let i = 0; i < naukriData.streak; i++) {
+            const d = new Date(today);
+            d.setDate(d.getDate() - i);
+            const dateStr = d.toISOString().split("T")[0];
+            activeDays.add(dateStr);
+            activeDaysCounts[dateStr] = (activeDaysCounts[dateStr] || 0) + 1;
         }
     }
 
@@ -506,6 +591,14 @@ export const getDashboardData = async (user = {}, forceRefresh = false) => {
             icon: null,
             category: "Code360 Achievement",
             platform: "Code360",
+          }] : []),
+
+          // 7. ATCODER BADGE
+          ...(atcoderData.accepted_count > 0 || atcoderData.rating > 0 ? [{
+            name: `AtCoder ${atcoderData.accepted_count || 0} Solved${atcoderData.rating > 0 ? ` (${atcoderData.rating} Rating)` : ""}`,
+            icon: null,
+            category: "AtCoder Achievement",
+            platform: "AtCoder",
           }] : []),
         ],
 

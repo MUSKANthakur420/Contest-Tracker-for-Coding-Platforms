@@ -2235,20 +2235,20 @@ function getInitials(name) {
 ========================================================= */
 
 function computeStreaks(activeDaysList) {
-  if (!activeDaysList.length) {
+  if (!activeDaysList || !activeDaysList.length) {
     return { maxStreak: 0, currentStreak: 0 };
   }
 
-  const sorted = [...activeDaysList].sort();
+  const sorted = Array.from(new Set(activeDaysList)).sort();
 
   let maxStreak = 1;
   let run = 1;
 
   for (let i = 1; i < sorted.length; i++) {
-    const prev = new Date(sorted[i - 1]);
-    const cur = new Date(sorted[i]);
+    const prev = new Date(sorted[i - 1] + "T00:00:00Z");
+    const cur = new Date(sorted[i] + "T00:00:00Z");
 
-    const diffDays = Math.round((cur - prev) / 86400000);
+    const diffDays = Math.round((cur - prev) / (1000 * 60 * 60 * 24));
 
     if (diffDays === 1) {
       run += 1;
@@ -2260,18 +2260,30 @@ function computeStreaks(activeDaysList) {
   }
 
   const activeSet = new Set(sorted);
-
   let currentStreak = 0;
 
   const now = new Date();
+  const todayStr = now.toISOString().split("T")[0];
 
-  const cursor = new Date(
-    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())
-  );
+  const yesterday = new Date(now);
+  yesterday.setUTCDate(yesterday.getUTCDate() - 1);
+  const yesterdayStr = yesterday.toISOString().split("T")[0];
 
-  while (activeSet.has(cursor.toISOString().split("T")[0])) {
-    currentStreak += 1;
-    cursor.setUTCDate(cursor.getUTCDate() - 1);
+  let startDateStr = null;
+  if (activeSet.has(todayStr)) {
+    startDateStr = todayStr;
+  } else if (activeSet.has(yesterdayStr)) {
+    startDateStr = yesterdayStr;
+  }
+
+  if (startDateStr) {
+    const [year, month, day] = startDateStr.split("-").map(Number);
+    const cursor = new Date(Date.UTC(year, month - 1, day));
+
+    while (activeSet.has(cursor.toISOString().split("T")[0])) {
+      currentStreak += 1;
+      cursor.setUTCDate(cursor.getUTCDate() - 1);
+    }
   }
 
   return { maxStreak, currentStreak };
