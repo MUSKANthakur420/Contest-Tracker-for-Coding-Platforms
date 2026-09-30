@@ -85,6 +85,39 @@ const DATE_FULL_LOCAL = new Intl.DateTimeFormat("en-IN", {
   timeZone: "Asia/Kolkata",
 });
 
+function formatIndianDateTime(val, includeTime = true) {
+  if (!val) return "Date n/a";
+  const date = new Date(val);
+  if (isNaN(date.getTime())) return "Date n/a";
+
+  const options = {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    timeZone: "Asia/Kolkata",
+  };
+
+  if (includeTime) {
+    options.hour = "2-digit";
+    options.minute = "2-digit";
+    options.hour12 = true;
+  }
+
+  const formatter = new Intl.DateTimeFormat("en-IN", options);
+  const parts = formatter.formatToParts(date);
+
+  let formatted = "";
+  for (const part of parts) {
+    if (part.type === "dayPeriod") {
+      formatted += part.value.toUpperCase();
+    } else {
+      formatted += part.value;
+    }
+  }
+
+  return includeTime ? `${formatted} IST` : formatted;
+}
+
 function prefersReducedMotion() {
   return (
     typeof window !== "undefined" &&
@@ -1120,7 +1153,7 @@ export default function Dashboard() {
                   <div style={s.latestContestRow}>
                     <span style={{ color: "#8A93A6" }}>
                       {latestContest.time
-                        ? DATE_FULL.format(new Date(latestContest.time))
+                        ? formatIndianDateTime(latestContest.time)
                         : "Date n/a"}
                     </span>
 
@@ -2184,7 +2217,7 @@ const ContestHistory = memo(function ContestHistory({ items, labels }) {
 
                   <div className="ct-contest-meta">
                     <span>
-                      {c.time ? DATE_FULL.format(new Date(c.time)) : "Date n/a"}
+                      {c.time ? formatIndianDateTime(c.time) : "Date n/a"}
                     </span>
 
                     {c.rating !== null && (

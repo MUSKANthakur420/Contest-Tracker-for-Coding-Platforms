@@ -3,9 +3,8 @@ import { Link, NavLink, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { logoutUser } from "../features/auth/authSlice";
 
-// Live UTC clock — most contest sites (Codeforces, AtCoder) schedule in UTC,
-// so showing it directly in the header saves a mental timezone conversion.
-function useUtcClock() {
+// Live IST clock — formatted in 12-hour AM/PM Indian Standard Time
+function useIstClock() {
   const [time, setTime] = useState(new Date());
 
   useEffect(() => {
@@ -13,11 +12,25 @@ function useUtcClock() {
     return () => clearInterval(tick);
   }, []);
 
-  const hh = String(time.getUTCHours()).padStart(2, "0");
-  const mm = String(time.getUTCMinutes()).padStart(2, "0");
-  const ss = String(time.getUTCSeconds()).padStart(2, "0");
+  const formatter = new Intl.DateTimeFormat("en-IN", {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: true,
+    timeZone: "Asia/Kolkata",
+  });
 
-  return `${hh}:${mm}:${ss}`;
+  const parts = formatter.formatToParts(time);
+  let formatted = "";
+  for (const part of parts) {
+    if (part.type === "dayPeriod") {
+      formatted += part.value.toUpperCase();
+    } else {
+      formatted += part.value;
+    }
+  }
+
+  return `${formatted} IST`;
 }
 
 const navLinkClasses = ({ isActive }) =>
@@ -35,7 +48,7 @@ const registerLinkClasses = ({ isActive }) =>
   }`;
 
 export default function Header() {
-  const utcTime = useUtcClock();
+  const istTime = useIstClock();
   const [menuOpen, setMenuOpen] = useState(false);
 
   const dispatch = useDispatch();
@@ -128,10 +141,10 @@ export default function Header() {
 
         <div
           className="flex items-center gap-2 font-mono text-sm text-[#8a90a6] bg-[#131720] border border-[#232838] px-3 py-1.5 rounded-md whitespace-nowrap"
-          title="Current time in UTC"
+          title="Current time in IST (Indian Standard Time)"
         >
           <span className="w-1.5 h-1.5 rounded-full bg-[#3fb950] shadow-[0_0_6px_#3fb950]" aria-hidden="true" />
-          {utcTime} UTC
+          {istTime}
         </div>
       </div>
     </header>

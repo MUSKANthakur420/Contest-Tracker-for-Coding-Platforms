@@ -31,7 +31,9 @@ const colorFor = (platform) => PLATFORM_COLORS[platform] || "#4f8cff";
 function formatIndianDateTime(ms) {
   if (!ms) return "Date n/a";
   const date = new Date(ms);
-  const formatted = new Intl.DateTimeFormat("en-IN", {
+  if (isNaN(date.getTime())) return "Date n/a";
+
+  const formatter = new Intl.DateTimeFormat("en-IN", {
     day: "2-digit",
     month: "short",
     year: "numeric",
@@ -39,7 +41,18 @@ function formatIndianDateTime(ms) {
     minute: "2-digit",
     hour12: true,
     timeZone: "Asia/Kolkata",
-  }).format(date);
+  });
+
+  const parts = formatter.formatToParts(date);
+  let formatted = "";
+  for (const part of parts) {
+    if (part.type === "dayPeriod") {
+      formatted += part.value.toUpperCase();
+    } else {
+      formatted += part.value;
+    }
+  }
+
   return `${formatted} IST`;
 }
 
