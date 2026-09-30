@@ -848,27 +848,25 @@ export default function Dashboard() {
      RATING TABS
   ========================================================= */
 
-  const ratingTabs = RATING_PLATFORMS.filter(
-    (k) =>
-      platformRows.find((p) => p.key === k)?.connected ||
-      ratingSeries[k].rating !== null ||
-      ratingSeries[k].points.length > 0
-  );
+  const ratingTabs = RATING_PLATFORMS.filter((k) => {
+    const row = platformRows.find((p) => p.key === k);
+    return Boolean(row && row.connected);
+  });
 
-  const tabs = ratingTabs.length ? ratingTabs : ["leetcode", "codeforces"];
+  const tabs = ratingTabs;
 
   const activePlatform = tabs.includes(selectedPlatform)
     ? selectedPlatform
-    : tabs[0];
+    : tabs[0] || "leetcode";
 
-  const activeSeries = ratingSeries[activePlatform];
+  const activeSeries = ratingSeries[activePlatform] || { points: [], rating: null };
 
   const latestContest =
-    activeSeries.points.length > 0
+    activeSeries.points && activeSeries.points.length > 0
       ? activeSeries.points[activeSeries.points.length - 1]
       : null;
 
-  const ratingColor = PLATFORM_META[activePlatform].color;
+  const ratingColor = PLATFORM_META[activePlatform]?.color || "#4F8CFF";
 
   /* =========================================================
      DSA RING
@@ -1076,67 +1074,73 @@ export default function Dashboard() {
 
         <div style={s.centerCol}>
           <div className="ct-card" style={{ ...s.card, ...s.cardGrow }}>
-            <div style={s.ratingHeader}>
-              <div>
-                <SectionLabel dot={ratingColor}>
-                  Rating · {labelFor[activePlatform]}
-                </SectionLabel>
+            {tabs.length === 0 ? (
+              <div style={s.emptyNote}>
+                No connected rating profiles. Add your platform handles in settings to view rating graphs.
+              </div>
+            ) : (
+              <>
+                <div style={s.ratingHeader}>
+                  <div>
+                    <SectionLabel dot={ratingColor}>
+                      Rating · {labelFor[activePlatform]}
+                    </SectionLabel>
 
-                <div style={s.bigNumber}>
-                  {activeSeries.rating === null ? (
-                    "—"
-                  ) : (
-                    <CountUpNumber value={Math.round(activeSeries.rating)} />
-                  )}
+                    <div style={s.bigNumber}>
+                      {activeSeries.rating === null ? (
+                        "—"
+                      ) : (
+                        <CountUpNumber value={Math.round(activeSeries.rating)} />
+                      )}
+                    </div>
+                  </div>
+
+                  <div style={s.platformToggle}>
+                    {tabs.map((key) => {
+                      const r = ratingSeries[key]?.rating;
+
+                      return (
+                        <ToggleChip
+                          key={key}
+                          label={`${labelFor[key]} ${
+                            r === null ? "—" : Math.round(r)
+                          }`}
+                          color={PLATFORM_META[key].color}
+                          active={activePlatform === key}
+                          onClick={() => setSelectedPlatform(key)}
+                        />
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
 
-              {/* ONLY 4 RATING PLATFORMS */}
+                {latestContest && (
+                  <div style={s.latestContestRow}>
+                    <span style={{ color: "#8A93A6" }}>
+                      {latestContest.time
+                        ? DATE_FULL.format(new Date(latestContest.time))
+                        : "Date n/a"}
+                    </span>
 
-              <div style={s.platformToggle}>
-                {tabs.map((key) => {
-                  const r = ratingSeries[key].rating;
+                    <span
+                      style={{
+                        color: "#E6E9EF",
+                        fontWeight: 600,
+                        overflowWrap: "anywhere",
+                      }}
+                    >
+                      {latestContest.title}
+                    </span>
+                  </div>
+                )}
 
-                  return (
-                    <ToggleChip
-                      key={key}
-                      label={`${labelFor[key]} ${
-                        r === null ? "—" : Math.round(r)
-                      }`}
-                      color={PLATFORM_META[key].color}
-                      active={activePlatform === key}
-                      onClick={() => setSelectedPlatform(key)}
-                    />
-                  );
-                })}
-              </div>
-            </div>
-
-            {latestContest && (
-              <div style={s.latestContestRow}>
-                <span style={{ color: "#8A93A6" }}>
-                  {latestContest.time
-                    ? DATE_FULL.format(new Date(latestContest.time))
-                    : "Date n/a"}
-                </span>
-
-                <span
-                  style={{
-                    color: "#E6E9EF",
-                    fontWeight: 600,
-                    overflowWrap: "anywhere",
-                  }}
-                >
-                  {latestContest.title}
-                </span>
-              </div>
+                <RatingChart
+                  key={activePlatform}
+                  points={activeSeries.points}
+                  color={ratingColor}
+                />
+              </>
             )}
-
-            <RatingChart
-              key={activePlatform}
-              points={activeSeries.points}
-              color={ratingColor}
-            />
           </div>
 
           {awards.length > 0 && (
