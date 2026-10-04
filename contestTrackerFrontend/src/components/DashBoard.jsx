@@ -250,7 +250,8 @@ function useRefreshCooldown(userKey) {
       writeStoredNumber(anonKey, 0);
     }
 
-    setUntil(saved > Date.now() ? saved : 0);
+    const maxAllowed = Date.now() + REFRESH_COOLDOWN_MS;
+    setUntil(saved > Date.now() ? Math.min(saved, maxAllowed) : 0);
     setNow(Date.now());
   }, [storageKey, userKey]);
 
