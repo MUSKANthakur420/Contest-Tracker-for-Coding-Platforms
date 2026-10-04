@@ -75,8 +75,8 @@ const refreshDashboard = asynchandler(async (req, res) => {
             "refresh",
             { userId },
             {
-                removeOnComplete: false,
-                removeOnFail: false,
+                removeOnComplete: 50,
+                removeOnFail: 100,
             }
         );
 

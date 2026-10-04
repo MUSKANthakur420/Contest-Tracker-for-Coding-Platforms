@@ -58,6 +58,8 @@ const worker = new Worker(
     {
         connection,
         concurrency: 5,
+        drainDelay: 30, // Wait 30s when queue is empty to reduce Redis request count
+        stalledInterval: 60000, // Check for stalled jobs every 60s
     }
 );
 await worker.waitUntilReady();
