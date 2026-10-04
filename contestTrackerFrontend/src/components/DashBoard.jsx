@@ -60,7 +60,7 @@ const EMPTY_LIST = [];
 const EMPTY_OBJ = {};
 
 /* ---- refresh limits ---- */
-const REFRESH_COOLDOWN_MS = 10 * 60 * 1000; // use 5 * 60 * 1000 for 5 minutes
+const REFRESH_COOLDOWN_MS = 5 * 60 * 1000;
 const COOLDOWN_KEY = "ct_refresh_available_at";
 const POLL_INTERVAL_MS = 2000;
 const POLL_TIMEOUT_MS = 3 * 60 * 1000;
