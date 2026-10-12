@@ -52,16 +52,6 @@ Architecture
 
 Users add their coding profiles, and the backend fetches their statistics from supported platforms. Redis helps cache dashboard data, while BullMQ handles background jobs so that fetching stats doesn't unnecessarily block API requests.
 
-## Getting Started
-
-```bash
-git clone <your-repository-url>
-cd ContestTracker
-```
-
-Install dependencies in the frontend and backend directories, configure the required environment variables, and start the application.
-
-You'll need Node.js, MongoDB, and Redis configured to run the complete application locally.
 
 ## Future Improvements
 
