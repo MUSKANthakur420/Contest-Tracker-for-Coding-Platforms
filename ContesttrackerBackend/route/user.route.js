@@ -10,6 +10,11 @@ import {
     dashboardStatus,
   } from "../controller/dashboard.controller.js";
 import { getUpcomingContests } from "../controller/contest.controller.js";
+import {
+    setContestReminder,
+    removeContestReminder,
+    getMyContestReminders,
+} from "../controller/reminder.controller.js";
 import limiter from "../middleware/rateLimiter.middleware.js";
 
 const router = Router();
@@ -47,6 +52,9 @@ router.get(
     dashboardStatus
   );
 router.route("/contests").get(getUpcomingContests);
+router.route("/contests/reminder").post(VerifyJWT, limiter, setContestReminder);
+router.route("/contests/reminder/:contestId").delete(VerifyJWT, removeContestReminder);
+router.route("/contests/my-reminders").get(VerifyJWT, getMyContestReminders);
 router.route("/me").get(VerifyJWT, getCurrentUser);
 router.post(
     "/refresh",

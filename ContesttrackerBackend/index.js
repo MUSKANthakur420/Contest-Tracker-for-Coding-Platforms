@@ -1,6 +1,7 @@
 import "dotenv/config";
 import connect_db from "./db/index.js";
 import { app } from "./app.js";
+import { startReminderScheduler } from "./services/reminderScheduler.service.js";
 
 const PORT = process.env.PORT || 8000;
 
@@ -15,6 +16,7 @@ server.on("error", (error) => {
 connect_db()
   .then(() => {
     console.log("MongoDB connected successfully");
+    startReminderScheduler(30000);
   })
   .catch((err) => {
     console.error("MongoDB connection failed:", err?.message || err);

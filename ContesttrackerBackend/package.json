@@ -4,12 +4,12 @@
   "description": "",
   "main": "index.js",
   "type": "module",
-"scripts": {
-  "dev": "nodemon index.js",
-  "start": "node index.js",
-  "worker": "node workers/dashboard.worker.js",
-  "start:all": "concurrently \"npm run start\" \"npm run worker\""
-},
+  "scripts": {
+    "dev": "nodemon index.js",
+    "start": "node index.js",
+    "worker": "node workers/dashboard.worker.js",
+    "start:all": "concurrently \"npm run start\" \"npm run worker\""
+  },
   "author": "",
   "license": "ISC",
   "dependencies": {
@@ -28,6 +28,7 @@
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^9.9.5",
     "multer": "^2.2.0",
+    "nodemailer": "^10.3.1",
     "nodemon": "^3.1.14",
     "react": "^19.2.7"
   }
