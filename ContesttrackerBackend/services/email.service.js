@@ -9,17 +9,18 @@ export const getEmailTransporter = () => {
   const rawPass = process.env.EMAIL_PASS?.trim();
 
   if (!emailUser || !rawPass) {
-    console.warn(
-      "⚠️ EMAIL_USER or EMAIL_PASS not configured in environment variables. Emails will be logged to console."
-    );
     return null;
   }
 
-  // Remove any whitespace from the App Password (Google displays app passwords in groups of 4)
   const emailPass = rawPass.replace(/\s+/g, "");
 
   transporter = nodemailer.createTransport({
-    service: process.env.EMAIL_SERVICE || "gmail",
+    host: "smtp.gmail.com",
+    port: 465,
+    secure: true,
+    connectionTimeout: 10000,
+    greetingTimeout: 10000,
+    socketTimeout: 10000,
     auth: {
       user: emailUser,
       pass: emailPass,
@@ -44,6 +45,95 @@ const formatISTDateTime = (date) => {
 };
 
 /**
+ * Unified Email Dispatcher
+ * Priority:
+ * 1. Brevo HTTP API (Port 443 - NEVER blocked by Render / cloud firewalls, 300 free/day)
+ * 2. Resend HTTP API (Port 443)
+ * 3. Nodemailer / Gmail SMTP (Port 465)
+ */
+export const dispatchEmail = async ({ to, subject, html }) => {
+  const brevoKey = process.env.BREVO_API_KEY?.trim();
+  const resendKey = process.env.RESEND_API_KEY?.trim();
+  const senderEmail =
+    process.env.SENDER_EMAIL?.trim() || process.env.EMAIL_USER?.trim();
+
+  // 1. Brevo HTTP REST API (Best for Render - uses HTTPS Port 443)
+  if (brevoKey) {
+    const fromEmail = senderEmail || "notifications@conttrack.app";
+    const res = await fetch("https://api.brevo.com/v3/smtp/email", {
+      method: "POST",
+      headers: {
+        accept: "application/json",
+        "api-key": brevoKey,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        sender: {
+          name: "ContTrack Alerts",
+          email: fromEmail,
+        },
+        to: [{ email: to }],
+        subject,
+        htmlContent: html,
+      }),
+    });
+
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      throw new Error(
+        data.message ||
+          `Brevo email delivery failed with status ${res.status}`
+      );
+    }
+    return { success: true, provider: "brevo", data };
+  }
+
+  // 2. Resend HTTP REST API (Uses HTTPS Port 443)
+  if (resendKey) {
+    const fromEmail = senderEmail || "onboarding@resend.dev";
+    const res = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${resendKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from: `ContTrack Alerts <${fromEmail}>`,
+        to: [to],
+        subject,
+        html,
+      }),
+    });
+
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      throw new Error(
+        data.message ||
+          `Resend email delivery failed with status ${res.status}`
+      );
+    }
+    return { success: true, provider: "resend", data };
+  }
+
+  // 3. Fallback: Nodemailer SMTP
+  const mailTransporter = getEmailTransporter();
+  if (mailTransporter) {
+    const fromAddress = process.env.EMAIL_USER?.trim();
+    const info = await mailTransporter.sendMail({
+      from: `"ContTrack Alerts" <${fromAddress}>`,
+      to,
+      subject,
+      html,
+    });
+    return { success: true, provider: "nodemailer", data: info };
+  }
+
+  // Simulation mode
+  console.log(`[EMAIL SIMULATION] To: ${to} | Subject: ${subject}`);
+  return { simulated: true };
+};
+
+/**
  * Send Contest Reminder Email
  * Handles both 1-Day (24h) alert and 1-Hour alert
  */
@@ -56,7 +146,6 @@ export const sendContestReminderEmail = async ({
   contestUrl,
   alertType, // "1_day" | "1_hour" | "30_min"
 }) => {
-  const mailTransporter = getEmailTransporter();
   const timeIST = formatISTDateTime(startTime);
 
   const isOneDay = alertType === "1_day";
@@ -134,19 +223,7 @@ export const sendContestReminderEmail = async ({
     </html>
   `;
 
-  if (!mailTransporter) {
-    console.log(`[EMAIL SIMULATION] Sending reminder to ${to}: ${subject}`);
-    return { simulated: true };
-  }
-
-  const info = await mailTransporter.sendMail({
-    from: `"ContTrack Alerts" <${process.env.EMAIL_USER}>`,
-    to,
-    subject,
-    html,
-  });
-
-  return info;
+  return await dispatchEmail({ to, subject, html });
 };
 
 /**
@@ -161,7 +238,6 @@ export const sendReminderConfirmationEmail = async ({
   contestUrl,
   reminderScheduleText,
 }) => {
-  const mailTransporter = getEmailTransporter();
   const timeIST = formatISTDateTime(startTime);
 
   const subject = `✅ Reminder Confirmed: ${contestName}`;
@@ -218,17 +294,5 @@ export const sendReminderConfirmationEmail = async ({
     </html>
   `;
 
-  if (!mailTransporter) {
-    console.log(`[EMAIL SIMULATION] Sending confirmation to ${to}: ${subject}`);
-    return { simulated: true };
-  }
-
-  const info = await mailTransporter.sendMail({
-    from: `"ContTrack Alerts" <${process.env.EMAIL_USER}>`,
-    to,
-    subject,
-    html,
-  });
-
-  return info;
+  return await dispatchEmail({ to, subject, html });
 };

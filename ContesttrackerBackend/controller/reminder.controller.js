@@ -4,7 +4,7 @@ import Apierr from "../utils/Apierr.js";
 import Reminder from "../model/reminder.model.js";
 import {
   sendReminderConfirmationEmail,
-  getEmailTransporter,
+  dispatchEmail,
 } from "../services/email.service.js";
 
 /**
@@ -172,13 +172,15 @@ export const getMyContestReminders = asynchandler(async (req, res) => {
  * Test endpoint to immediately verify email configuration (Nodemailer / Gmail)
  */
 export const testContestEmail = asynchandler(async (req, res) => {
+  const brevoKey = process.env.BREVO_API_KEY?.trim();
+  const resendKey = process.env.RESEND_API_KEY?.trim();
   const emailUser = process.env.EMAIL_USER?.trim();
   const rawPass = process.env.EMAIL_PASS?.trim();
 
-  if (!emailUser || !rawPass) {
+  if (!brevoKey && !resendKey && (!emailUser || !rawPass)) {
     throw new Apierr(
       400,
-      "EMAIL_USER or EMAIL_PASS is missing in Render environment variables. Please add them in Render Dashboard -> Environment."
+      "Email provider is not configured. Please add BREVO_API_KEY in Render Dashboard (Recommended: free 300 emails/day, works 100% on Render over HTTPS)."
     );
   }
 
@@ -187,38 +189,46 @@ export const testContestEmail = asynchandler(async (req, res) => {
     throw new Apierr(400, "No email address found for your user account.");
   }
 
-  const transporter = getEmailTransporter();
-  if (!transporter) {
-    throw new Apierr(500, "Could not initialize email transporter.");
-  }
+  const subject = "🎯 ContTrack Test Notification: Email reminders are active!";
+  const html = `
+    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #0b0e14; color: #e6e8ef; padding: 28px; border-radius: 12px; max-width: 500px; margin: 0 auto; border: 1px solid #232838;">
+      <h2 style="color: #2fd9a8; margin-top: 0;">✅ Contest Email Reminders Active!</h2>
+      <p style="color: #8a90a6; font-size: 14px; line-height: 1.6;">Hi <strong>${req.user.username || "Coder"}</strong>,</p>
+      <p style="color: #8a90a6; font-size: 14px; line-height: 1.6;">This test email confirms that your ContTrack email alert system is correctly connected and working!</p>
+      <p style="color: #8a90a6; font-size: 14px; line-height: 1.6;">You'll automatically receive reminder emails 1 day and 1 hour before your registered coding contests.</p>
+      <div style="margin-top: 20px; font-size: 12px; color: #545b70;">Sent by ContTrack · Coding Contest Tracker</div>
+    </div>
+  `;
 
   try {
-    await transporter.verify();
-  } catch (err) {
-    throw new Apierr(
-      400,
-      `Gmail SMTP Authentication failed: ${err.message}. Please verify you generated a 16-character App Password (without spaces) and 2-Step Verification is ON in your Google account.`
+    const result = await dispatchEmail({
+      to: recipientEmail,
+      subject,
+      html,
+    });
+
+    if (result?.simulated) {
+      throw new Apierr(
+        400,
+        "Email configuration missing on Render. Please configure BREVO_API_KEY or EMAIL_USER."
+      );
+    }
+
+    return res.status(200).json(
+      new Apires(
+        200,
+        `Test email successfully sent to ${recipientEmail} via ${result?.provider || "email service"}! Check your inbox.`,
+        { recipient: recipientEmail, provider: result?.provider }
+      )
     );
+  } catch (err) {
+    console.error("Test email dispatch error:", err);
+    if (err.message?.includes("Connection timeout") || err.message?.includes("ETIMEDOUT")) {
+      throw new Apierr(
+        400,
+        "Render Free Tier blocks outbound SMTP ports (587/465). To fix this instantly, add a free BREVO_API_KEY in Render (Brevo uses HTTPS port 443 which is never blocked by Render)."
+      );
+    }
+    throw new Apierr(400, `Email delivery failed: ${err.message}`);
   }
-
-  await transporter.sendMail({
-    from: `"ContTrack Alerts" <${emailUser}>`,
-    to: recipientEmail,
-    subject: "🎯 ContTrack Test Notification: Email reminders are active!",
-    html: `
-      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #0b0e14; color: #e6e8ef; padding: 28px; border-radius: 12px; max-width: 500px; margin: 0 auto; border: 1px solid #232838;">
-        <h2 style="color: #2fd9a8; margin-top: 0;">✅ Contest Email Reminders Active!</h2>
-        <p style="color: #8a90a6; font-size: 14px; line-height: 1.6;">Hi <strong>${req.user.username || "Coder"}</strong>,</p>
-        <p style="color: #8a90a6; font-size: 14px; line-height: 1.6;">This test email confirms that your ContTrack email alert system is correctly connected using <strong>${emailUser}</strong>.</p>
-        <p style="color: #8a90a6; font-size: 14px; line-height: 1.6;">You'll automatically receive reminder emails 1 day and 1 hour before your registered coding contests.</p>
-        <div style="margin-top: 20px; font-size: 12px; color: #545b70;">Sent by ContTrack · Coding Contest Tracker</div>
-      </div>
-    `,
-  });
-
-  return res.status(200).json(
-    new Apires(200, `Test email successfully sent to ${recipientEmail}! Check your inbox.`, {
-      recipient: recipientEmail,
-    })
-  );
 });
