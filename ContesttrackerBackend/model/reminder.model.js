@@ -1,5 +1,37 @@
 import mongoose from "mongoose";
 
+const alertItemSchema = new mongoose.Schema(
+  {
+    alertType: {
+      type: String,
+      enum: ["1_day", "1_hour", "30_min"],
+      required: true,
+    },
+    minutesBefore: {
+      type: Number,
+      required: true,
+    },
+    remindAt: {
+      type: Date,
+      required: true,
+      index: true,
+    },
+    status: {
+      type: String,
+      enum: ["pending", "sending", "sent", "failed", "cancelled", "expired"],
+      default: "pending",
+      index: true,
+    },
+    sentAt: {
+      type: Date,
+    },
+    error: {
+      type: String,
+    },
+  },
+  { _id: true }
+);
+
 const reminderSchema = new mongoose.Schema(
   {
     user: {
@@ -29,32 +61,16 @@ const reminderSchema = new mongoose.Schema(
       type: Date,
       required: true,
     },
-    remindBeforeMinutes: {
-      type: Number,
-      required: true,
-      default: 30,
-    },
-    remindAt: {
-      type: Date,
-      required: true,
-      index: true,
-    },
     email: {
       type: String,
       required: true,
     },
-    status: {
+    reminderType: {
       type: String,
-      enum: ["pending", "sending", "sent", "failed", "cancelled", "expired"],
-      default: "pending",
-      index: true,
+      enum: ["both", "1_day", "1_hour", "30_min"],
+      default: "both",
     },
-    sentAt: {
-      type: Date,
-    },
-    error: {
-      type: String,
-    },
+    alerts: [alertItemSchema],
   },
   {
     timestamps: true,
@@ -64,8 +80,8 @@ const reminderSchema = new mongoose.Schema(
 // Compound index to ensure 1 active reminder per contest per user
 reminderSchema.index({ user: 1, contestId: 1 }, { unique: true });
 
-// Compound index for fast query in the reminder scheduler
-reminderSchema.index({ status: 1, remindAt: 1 });
+// Compound index for querying due alerts in scheduler
+reminderSchema.index({ "alerts.status": 1, "alerts.remindAt": 1 });
 
 const Reminder = mongoose.model("Reminder", reminderSchema);
 export default Reminder;

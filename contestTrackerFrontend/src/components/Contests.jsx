@@ -89,10 +89,33 @@ function formatCountdown(ms) {
 }
 
 const REMINDER_OPTIONS = [
-  { minutes: 15, label: "15 minutes before", desc: "Quick heads-up" },
-  { minutes: 30, label: "30 minutes before", desc: "Recommended for prep", popular: true },
-  { minutes: 60, label: "1 hour before", desc: "Plenty of time to warm up" },
+  {
+    type: "both",
+    label: "1 Day & 1 Hour Before",
+    desc: "Recommended · 24h advance alert + 1h final prep",
+    popular: true,
+    badgeText: "1d & 1h",
+  },
+  {
+    type: "1_hour",
+    label: "1 Hour Before",
+    desc: "60-minute heads-up before contest kicks off",
+    badgeText: "1h",
+  },
+  {
+    type: "1_day",
+    label: "1 Day Before",
+    desc: "24-hour advance planning reminder",
+    badgeText: "1d",
+  },
 ];
+
+const getReminderBadgeLabel = (reminder) => {
+  if (!reminder) return null;
+  const opt = REMINDER_OPTIONS.find((o) => o.type === reminder.reminderType);
+  if (opt) return opt.badgeText;
+  return "1d & 1h";
+};
 
 export default function Contests() {
   const navigate = useNavigate();
@@ -102,12 +125,12 @@ export default function Contests() {
   const [now, setNow] = useState(Date.now());
   const [activeFilter, setActiveFilter] = useState("All");
 
-  // User's active reminders map: { [contestId]: { remindBeforeMinutes, remindAt, status } }
+  // User's active reminders map: { [contestId]: { reminderType, alerts, startTime } }
   const [myReminders, setMyReminders] = useState({});
 
   // Reminder modal state
   const [modalContest, setModalContest] = useState(null);
-  const [selectedMinutes, setSelectedMinutes] = useState(30);
+  const [selectedType, setSelectedType] = useState("both");
   const [reminderActionLoading, setReminderActionLoading] = useState(false);
 
   // Toast feedback
@@ -237,7 +260,7 @@ export default function Contests() {
       e.stopPropagation();
     }
     const existing = myReminders[contest.id];
-    setSelectedMinutes(existing?.remindBeforeMinutes || 30);
+    setSelectedType(existing?.reminderType || "both");
     setModalContest(contest);
   };
 
@@ -264,7 +287,7 @@ export default function Contests() {
           platform: modalContest.platform,
           contestUrl: modalContest.url,
           startTime: modalContest.startTime,
-          remindBeforeMinutes: selectedMinutes,
+          reminderType: selectedType,
         }),
       });
 
@@ -277,12 +300,20 @@ export default function Contests() {
         ...prev,
         [modalContest.id]: {
           contestId: modalContest.id,
-          remindBeforeMinutes: selectedMinutes,
-          remindAt: json.data?.remindAt,
+          reminderType: selectedType,
+          alerts: json.data?.alerts,
+          startTime: modalContest.startTime,
         },
       }));
 
-      showToast(`Reminder set for ${modalContest.name}! We'll email you ${selectedMinutes}m before start.`);
+      const scheduleLabel =
+        selectedType === "both"
+          ? "1 day & 1 hour before"
+          : selectedType === "1_hour"
+          ? "1 hour before"
+          : "1 day before";
+
+      showToast(`Reminder set for ${modalContest.name}! (${scheduleLabel})`);
       setModalContest(null);
     } catch (err) {
       showToast(err.message || "Failed to set reminder", "error");
@@ -371,7 +402,7 @@ export default function Contests() {
           <span className="text-sm font-medium">{toast.msg}</span>
           <button
             onClick={() => setToast(null)}
-            className="text-[#8a90a6] hover:text-[#e6e8ef] ml-1"
+            className="text-[#8a90a6] hover:text-[#e6e8ef] ml-1 cursor-pointer"
           >
             <X size={14} />
           </button>
@@ -418,7 +449,7 @@ export default function Contests() {
                 {nextContestReminded ? (
                   <>
                     <BellRing size={15} className="animate-pulse" />
-                    <span>Reminded ({nextContestReminded.remindBeforeMinutes}m)</span>
+                    <span>Reminded ({getReminderBadgeLabel(nextContestReminded)})</span>
                   </>
                 ) : (
                   <>
@@ -507,8 +538,8 @@ export default function Contests() {
                   onClick={(e) => handleOpenReminderModal(contest, e)}
                   title={
                     reminded
-                      ? `Reminder set for ${reminded.remindBeforeMinutes}m before. Click to edit or cancel.`
-                      : "Remind me before contest starts"
+                      ? `Reminder set (${getReminderBadgeLabel(reminded)}). Click to update or cancel.`
+                      : "Remind me 1 day and 1 hour before contest starts"
                   }
                   className={`inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-lg border transition-all cursor-pointer ${
                     reminded
@@ -519,7 +550,7 @@ export default function Contests() {
                   {reminded ? (
                     <>
                       <BellRing size={13} className="text-[#2fd9a8]" />
-                      <span>{reminded.remindBeforeMinutes}m</span>
+                      <span>{getReminderBadgeLabel(reminded)}</span>
                     </>
                   ) : (
                     <>
@@ -600,18 +631,18 @@ export default function Contests() {
             ) : (
               <>
                 <p className="text-xs text-[#8a90a6] mt-2 mb-4">
-                  Select when you want to receive an email reminder before this contest kicks off:
+                  Choose your preferred reminder alerts for this contest:
                 </p>
 
                 {/* Timing Options */}
                 <div className="flex flex-col gap-2 mb-5">
                   {REMINDER_OPTIONS.map((opt) => {
-                    const isSelected = selectedMinutes === opt.minutes;
+                    const isSelected = selectedType === opt.type;
                     return (
                       <button
-                        key={opt.minutes}
+                        key={opt.type}
                         type="button"
-                        onClick={() => setSelectedMinutes(opt.minutes)}
+                        onClick={() => setSelectedType(opt.type)}
                         className={`flex items-center justify-between p-3 rounded-xl border text-left transition-all cursor-pointer ${
                           isSelected
                             ? "bg-[#4f8cff12] border-[#4f8cff] text-[#e6e8ef]"
@@ -647,7 +678,7 @@ export default function Contests() {
                 <div className="flex items-center gap-2 text-xs text-[#8a90a6] mb-6 bg-[#0d1017] px-3 py-2 rounded-lg border border-[#1f2433]">
                   <Clock size={14} className="text-[#4f8cff] flex-shrink-0" />
                   <span>
-                    Reminder will be delivered straight to your registered email address.
+                    Reminders will be delivered straight to your registered email address.
                   </span>
                 </div>
 

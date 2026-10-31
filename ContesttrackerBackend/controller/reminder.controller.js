@@ -6,6 +6,7 @@ import { sendReminderConfirmationEmail } from "../services/email.service.js";
 
 /**
  * Register or update a contest reminder for the authenticated user
+ * Default: "both" (1 day before + 1 hour before)
  */
 export const setContestReminder = asynchandler(async (req, res) => {
   const {
@@ -14,7 +15,7 @@ export const setContestReminder = asynchandler(async (req, res) => {
     platform,
     contestUrl,
     startTime,
-    remindBeforeMinutes = 30,
+    reminderType = "both", // "both" | "1_hour" | "1_day"
   } = req.body;
 
   if (!contestId || !contestName || !platform || !contestUrl || !startTime) {
@@ -29,15 +30,52 @@ export const setContestReminder = asynchandler(async (req, res) => {
     throw new Apierr(400, "Invalid contest start time.");
   }
 
-  if (start.getTime() <= Date.now()) {
+  const now = Date.now();
+  if (start.getTime() <= now) {
     throw new Apierr(400, "This contest has already started or ended.");
   }
 
-  const minutes = Number(remindBeforeMinutes) || 30;
-  // If the contest starts sooner than the requested reminder window,
-  // trigger reminder immediately so user still gets an alert
-  const calculatedRemindAt = new Date(start.getTime() - minutes * 60 * 1000);
-  const remindAt = calculatedRemindAt.getTime() > Date.now() ? calculatedRemindAt : new Date();
+  const alerts = [];
+
+  const timeOneDayBefore = start.getTime() - 24 * 60 * 60 * 1000;
+  const timeOneHourBefore = start.getTime() - 60 * 60 * 1000;
+
+  // 1. Check for 1-Day (24h) alert
+  if (reminderType === "both" || reminderType === "1_day") {
+    if (timeOneDayBefore > now) {
+      alerts.push({
+        alertType: "1_day",
+        minutesBefore: 1440,
+        remindAt: new Date(timeOneDayBefore),
+        status: "pending",
+      });
+    }
+  }
+
+  // 2. Check for 1-Hour alert
+  if (reminderType === "both" || reminderType === "1_hour") {
+    const remindAtHour = timeOneHourBefore > now ? new Date(timeOneHourBefore) : new Date(now);
+    alerts.push({
+      alertType: "1_hour",
+      minutesBefore: 60,
+      remindAt: remindAtHour,
+      status: "pending",
+    });
+  }
+
+  // Fallback in case contest is starting so soon that neither was added
+  if (alerts.length === 0) {
+    alerts.push({
+      alertType: "1_hour",
+      minutesBefore: 60,
+      remindAt: new Date(now),
+      status: "pending",
+    });
+  }
+
+  let scheduleText = "1 day before and 1 hour before";
+  if (reminderType === "1_hour") scheduleText = "1 hour before";
+  if (reminderType === "1_day") scheduleText = "1 day before";
 
   const reminder = await Reminder.findOneAndUpdate(
     { user: req.user._id, contestId },
@@ -48,11 +86,9 @@ export const setContestReminder = asynchandler(async (req, res) => {
       platform,
       contestUrl,
       startTime: start,
-      remindBeforeMinutes: minutes,
-      remindAt,
       email: req.user.email,
-      status: "pending",
-      error: null,
+      reminderType,
+      alerts,
     },
     { upsert: true, new: true, setDefaultsOnInsert: true }
   );
@@ -65,7 +101,7 @@ export const setContestReminder = asynchandler(async (req, res) => {
     platform,
     startTime: start,
     contestUrl,
-    remindBeforeMinutes: minutes,
+    reminderScheduleText: scheduleText,
   }).catch((err) => {
     console.warn("Could not send reminder confirmation email:", err.message);
   });
@@ -74,10 +110,9 @@ export const setContestReminder = asynchandler(async (req, res) => {
     new Apires(200, "Contest reminder set successfully", {
       contestId: reminder.contestId,
       contestName: reminder.contestName,
-      remindBeforeMinutes: reminder.remindBeforeMinutes,
-      remindAt: reminder.remindAt,
+      reminderType: reminder.reminderType,
+      alerts: reminder.alerts,
       startTime: reminder.startTime,
-      status: reminder.status,
     })
   );
 });
@@ -114,9 +149,8 @@ export const getMyContestReminders = asynchandler(async (req, res) => {
 
   const reminders = await Reminder.find({
     user: req.user._id,
-    status: { $in: ["pending", "sending"] },
     startTime: { $gt: now },
-  }).select("contestId contestName platform remindBeforeMinutes remindAt startTime status");
+  }).select("contestId contestName platform reminderType alerts startTime");
 
   return res.status(200).json(
     new Apires(200, "User contest reminders fetched", reminders)
