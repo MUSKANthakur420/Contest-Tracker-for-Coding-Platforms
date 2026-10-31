@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import {
   Bell,
   BellRing,
@@ -9,6 +9,8 @@ import {
   ExternalLink,
   AlertCircle,
   Calendar,
+  Send,
+  Loader2,
 } from "lucide-react";
 
 const API_BASE = "https://contest-tracker-for-coding-platforms-1.onrender.com/api/v1/users";
@@ -110,11 +112,18 @@ const REMINDER_OPTIONS = [
   },
 ];
 
-const getReminderBadgeLabel = (reminder) => {
+const getReminderBadgeLabel = (reminder, startTime, now) => {
   if (!reminder) return null;
-  const opt = REMINDER_OPTIONS.find((o) => o.type === reminder.reminderType);
-  if (opt) return opt.badgeText;
-  return "1d & 1h";
+  const hoursLeft = (startTime - now) / (1000 * 60 * 60);
+
+  if (reminder.reminderType === "both") {
+    return hoursLeft > 24 ? "1d & 1h" : "1h";
+  }
+  if (reminder.reminderType === "1_hour") return "1h";
+  if (reminder.reminderType === "1_day") {
+    return hoursLeft > 24 ? "1d" : "1h (soon)";
+  }
+  return "1h";
 };
 
 export default function Contests() {
@@ -132,6 +141,7 @@ export default function Contests() {
   const [modalContest, setModalContest] = useState(null);
   const [selectedType, setSelectedType] = useState("both");
   const [reminderActionLoading, setReminderActionLoading] = useState(false);
+  const [testEmailLoading, setTestEmailLoading] = useState(false);
 
   // Toast feedback
   const [toast, setToast] = useState(null);
@@ -140,7 +150,7 @@ export default function Contests() {
     setToast({ msg, type });
     setTimeout(() => {
       setToast(null);
-    }, 4000);
+    }, 5000);
   }, []);
 
   const token = () => localStorage.getItem("token") || localStorage.getItem("accessToken");
@@ -260,7 +270,13 @@ export default function Contests() {
       e.stopPropagation();
     }
     const existing = myReminders[contest.id];
-    setSelectedType(existing?.reminderType || "both");
+    const hoursLeft = (contest.startTime - Date.now()) / (1000 * 60 * 60);
+
+    if (existing?.reminderType) {
+      setSelectedType(existing.reminderType);
+    } else {
+      setSelectedType(hoursLeft > 24 ? "both" : "1_hour");
+    }
     setModalContest(contest);
   };
 
@@ -306,14 +322,17 @@ export default function Contests() {
         },
       }));
 
-      const scheduleLabel =
-        selectedType === "both"
-          ? "1 day & 1 hour before"
-          : selectedType === "1_hour"
-          ? "1 hour before"
-          : "1 day before";
+      const hoursLeft = (modalContest.startTime - Date.now()) / (1000 * 60 * 60);
+      let alertNotice = "1 day & 1 hour before";
+      if (hoursLeft <= 24) {
+        alertNotice = `1 hour before (at ${formatIndianDateTime(modalContest.startTime - 60 * 60 * 1000)})`;
+      } else if (selectedType === "1_hour") {
+        alertNotice = "1 hour before";
+      } else if (selectedType === "1_day") {
+        alertNotice = "1 day before";
+      }
 
-      showToast(`Reminder set for ${modalContest.name}! (${scheduleLabel})`);
+      showToast(`Reminder set for ${modalContest.name}! Alert: ${alertNotice}`);
       setModalContest(null);
     } catch (err) {
       showToast(err.message || "Failed to set reminder", "error");
@@ -356,6 +375,37 @@ export default function Contests() {
     }
   };
 
+  // Immediate Test Email Send
+  const handleSendTestEmail = async () => {
+    if (!isLoggedIn) {
+      navigate("/login");
+      return;
+    }
+
+    setTestEmailLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/contests/test-email`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token()}`,
+        },
+        credentials: "include",
+      });
+
+      const json = await res.json();
+      if (!res.ok) {
+        throw new Error(json.message || "Failed to send test email");
+      }
+
+      showToast(json.message || "Test email sent successfully! Check your inbox.");
+    } catch (err) {
+      showToast(err.message || "Test email delivery failed", "error");
+    } finally {
+      setTestEmailLoading(false);
+    }
+  };
+
   if (status === "loading") {
     return (
       <main className="max-w-3xl mx-auto px-6 py-16 text-center font-sans text-[#8a90a6]">
@@ -387,7 +437,7 @@ export default function Contests() {
         <div
           role="status"
           aria-live="polite"
-          className="fixed bottom-6 right-6 z-50 flex items-center gap-3 px-4 py-3 rounded-xl border shadow-2xl backdrop-blur-md transition-all animate-bounce"
+          className="fixed bottom-6 right-6 z-50 flex items-center gap-3 px-4 py-3 rounded-xl border shadow-2xl backdrop-blur-md transition-all animate-in fade-in slide-in-from-bottom-3 duration-200 max-w-md"
           style={{
             background: toast.type === "error" ? "#221115" : "#0d131f",
             borderColor: toast.type === "error" ? "#ff5c5c" : "#2fd9a8",
@@ -395,14 +445,14 @@ export default function Contests() {
           }}
         >
           {toast.type === "error" ? (
-            <AlertCircle size={18} className="text-[#ff5c5c]" />
+            <AlertCircle size={18} className="text-[#ff5c5c] flex-shrink-0" />
           ) : (
-            <Check size={18} className="text-[#2fd9a8]" />
+            <Check size={18} className="text-[#2fd9a8] flex-shrink-0" />
           )}
-          <span className="text-sm font-medium">{toast.msg}</span>
+          <span className="text-xs sm:text-sm font-medium leading-relaxed">{toast.msg}</span>
           <button
             onClick={() => setToast(null)}
-            className="text-[#8a90a6] hover:text-[#e6e8ef] ml-1 cursor-pointer"
+            className="text-[#8a90a6] hover:text-[#e6e8ef] ml-1 cursor-pointer flex-shrink-0"
           >
             <X size={14} />
           </button>
@@ -449,7 +499,15 @@ export default function Contests() {
                 {nextContestReminded ? (
                   <>
                     <BellRing size={15} className="animate-pulse" />
-                    <span>Reminded ({getReminderBadgeLabel(nextContestReminded)})</span>
+                    <span>
+                      Reminded (
+                      {getReminderBadgeLabel(
+                        nextContestReminded,
+                        nextContest.startTime,
+                        now
+                      )}
+                      )
+                    </span>
                   </>
                 ) : (
                   <>
@@ -538,8 +596,12 @@ export default function Contests() {
                   onClick={(e) => handleOpenReminderModal(contest, e)}
                   title={
                     reminded
-                      ? `Reminder set (${getReminderBadgeLabel(reminded)}). Click to update or cancel.`
-                      : "Remind me 1 day and 1 hour before contest starts"
+                      ? `Reminder set (${getReminderBadgeLabel(
+                          reminded,
+                          contest.startTime,
+                          now
+                        )}). Click to update or cancel.`
+                      : "Remind me before contest starts"
                   }
                   className={`inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-lg border transition-all cursor-pointer ${
                     reminded
@@ -550,7 +612,7 @@ export default function Contests() {
                   {reminded ? (
                     <>
                       <BellRing size={13} className="text-[#2fd9a8]" />
-                      <span>{getReminderBadgeLabel(reminded)}</span>
+                      <span>{getReminderBadgeLabel(reminded, contest.startTime, now)}</span>
                     </>
                   ) : (
                     <>
@@ -574,148 +636,202 @@ export default function Contests() {
       </section>
 
       {/* Reminder Config Modal */}
-      {modalContest && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm"
-          onClick={() => setModalContest(null)}
-        >
+      {modalContest && (() => {
+        const msLeft = modalContest.startTime - now;
+        const hoursLeft = msLeft / (1000 * 60 * 60);
+        const isUnder24Hours = hoursLeft <= 24;
+        const oneHourAlertTime = modalContest.startTime - 60 * 60 * 1000;
+
+        return (
           <div
-            className="bg-[#131720] border border-[#232838] rounded-2xl max-w-md w-full p-6 text-left shadow-2xl relative animate-in fade-in zoom-in-95 duration-150"
-            onClick={(e) => e.stopPropagation()}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm"
+            onClick={() => setModalContest(null)}
           >
-            {/* Close Button */}
-            <button
-              onClick={() => setModalContest(null)}
-              className="absolute top-5 right-5 text-[#8a90a6] hover:text-[#e6e8ef] transition-colors cursor-pointer"
+            <div
+              className="bg-[#131720] border border-[#232838] rounded-2xl max-w-md w-full p-6 text-left shadow-2xl relative animate-in fade-in zoom-in-95 duration-150"
+              onClick={(e) => e.stopPropagation()}
             >
-              <X size={18} />
-            </button>
-
-            {/* Header */}
-            <div className="flex items-center gap-2 mb-3">
-              <span
-                className="text-xs font-semibold px-2.5 py-0.5 rounded-full"
-                style={{
-                  background: `${colorFor(modalContest.platform)}20`,
-                  color: colorFor(modalContest.platform),
-                }}
+              {/* Close Button */}
+              <button
+                onClick={() => setModalContest(null)}
+                className="absolute top-5 right-5 text-[#8a90a6] hover:text-[#e6e8ef] transition-colors cursor-pointer"
               >
-                {modalContest.platform}
-              </span>
-              <span className="text-xs text-[#8a90a6] flex items-center gap-1">
-                <Calendar size={12} />
-                {formatIndianDateTime(modalContest.startTime)}
-              </span>
-            </div>
+                <X size={18} />
+              </button>
 
-            <h3 className="text-lg font-bold text-[#f2f4f8] mb-1 leading-snug">
-              {modalContest.name}
-            </h3>
-
-            {!isLoggedIn ? (
-              <div className="my-6 p-4 rounded-xl bg-[#181d28] border border-[#2b3245] text-center">
-                <Bell size={28} className="text-[#4f8cff] mx-auto mb-2 opacity-80" />
-                <h4 className="text-sm font-semibold text-[#f2f4f8] mb-1">
-                  Log in to get Contest Reminders
-                </h4>
-                <p className="text-xs text-[#8a90a6] mb-4">
-                  We'll send an email alert before the contest begins so you never miss a round.
-                </p>
-                <button
-                  onClick={() => navigate("/login")}
-                  className="w-full text-xs font-semibold py-2.5 rounded-lg bg-[#4f8cff] text-[#0b0e14] hover:opacity-90 transition-opacity cursor-pointer"
+              {/* Header */}
+              <div className="flex items-center gap-2 mb-3">
+                <span
+                  className="text-xs font-semibold px-2.5 py-0.5 rounded-full"
+                  style={{
+                    background: `${colorFor(modalContest.platform)}20`,
+                    color: colorFor(modalContest.platform),
+                  }}
                 >
-                  Log In to Continue &rarr;
-                </button>
+                  {modalContest.platform}
+                </span>
+                <span className="text-xs text-[#8a90a6] flex items-center gap-1">
+                  <Calendar size={12} />
+                  {formatIndianDateTime(modalContest.startTime)}
+                </span>
               </div>
-            ) : (
-              <>
-                <p className="text-xs text-[#8a90a6] mt-2 mb-4">
-                  Choose your preferred reminder alerts for this contest:
-                </p>
 
-                {/* Timing Options */}
-                <div className="flex flex-col gap-2 mb-5">
-                  {REMINDER_OPTIONS.map((opt) => {
-                    const isSelected = selectedType === opt.type;
-                    return (
-                      <button
-                        key={opt.type}
-                        type="button"
-                        onClick={() => setSelectedType(opt.type)}
-                        className={`flex items-center justify-between p-3 rounded-xl border text-left transition-all cursor-pointer ${
-                          isSelected
-                            ? "bg-[#4f8cff12] border-[#4f8cff] text-[#e6e8ef]"
-                            : "bg-[#0d1017] border-[#1f2433] text-[#8a90a6] hover:border-[#2b3245]"
-                        }`}
-                      >
-                        <div className="flex items-center gap-3">
-                          <div
-                            className={`w-4 h-4 rounded-full border flex items-center justify-center ${
-                              isSelected ? "border-[#4f8cff] bg-[#4f8cff]" : "border-[#545b70]"
-                            }`}
-                          >
-                            {isSelected && <div className="w-1.5 h-1.5 rounded-full bg-[#0b0e14]" />}
-                          </div>
-                          <div>
-                            <span className="text-sm font-semibold block text-[#f2f4f8]">
-                              {opt.label}
-                            </span>
-                            <span className="text-xs text-[#8a90a6]">{opt.desc}</span>
-                          </div>
-                        </div>
+              <h3 className="text-lg font-bold text-[#f2f4f8] mb-1 leading-snug">
+                {modalContest.name}
+              </h3>
 
-                        {opt.popular && (
-                          <span className="text-[10px] font-semibold text-[#4f8cff] bg-[#4f8cff18] px-2 py-0.5 rounded-full uppercase tracking-wider">
-                            Popular
-                          </span>
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
-
-                <div className="flex items-center gap-2 text-xs text-[#8a90a6] mb-6 bg-[#0d1017] px-3 py-2 rounded-lg border border-[#1f2433]">
-                  <Clock size={14} className="text-[#4f8cff] flex-shrink-0" />
-                  <span>
-                    Reminders will be delivered straight to your registered email address.
-                  </span>
-                </div>
-
-                {/* Modal Action Buttons */}
-                <div className="flex items-center gap-2">
+              {!isLoggedIn ? (
+                <div className="my-6 p-4 rounded-xl bg-[#181d28] border border-[#2b3245] text-center">
+                  <Bell size={28} className="text-[#4f8cff] mx-auto mb-2 opacity-80" />
+                  <h4 className="text-sm font-semibold text-[#f2f4f8] mb-1">
+                    Log in to get Contest Reminders
+                  </h4>
+                  <p className="text-xs text-[#8a90a6] mb-4">
+                    We'll send an email alert before the contest begins so you never miss a round.
+                  </p>
                   <button
-                    onClick={handleSaveReminder}
-                    disabled={reminderActionLoading}
-                    className="flex-1 inline-flex items-center justify-center gap-2 text-sm font-semibold text-[#0b0e14] bg-[#4f8cff] py-2.5 px-4 rounded-lg hover:opacity-90 disabled:opacity-50 transition-opacity cursor-pointer"
+                    onClick={() => navigate("/login")}
+                    className="w-full text-xs font-semibold py-2.5 rounded-lg bg-[#4f8cff] text-[#0b0e14] hover:opacity-90 transition-opacity cursor-pointer"
                   >
-                    {reminderActionLoading ? (
-                      <span>Saving…</span>
-                    ) : (
-                      <>
-                        <Bell size={14} />
-                        <span>
-                          {myReminders[modalContest.id] ? "Update Reminder" : "Set Reminder"}
-                        </span>
-                      </>
-                    )}
+                    Log In to Continue &rarr;
                   </button>
-
-                  {myReminders[modalContest.id] && (
-                    <button
-                      onClick={handleCancelReminder}
-                      disabled={reminderActionLoading}
-                      className="text-sm font-semibold text-[#ff5c5c] bg-[#ff5c5c14] border border-[#ff5c5c33] py-2.5 px-4 rounded-lg hover:bg-[#ff5c5c22] disabled:opacity-50 transition-colors cursor-pointer"
-                    >
-                      Cancel
-                    </button>
-                  )}
                 </div>
-              </>
-            )}
+              ) : (
+                <>
+                  {/* Notice if contest is in less than 24 hours */}
+                  {isUnder24Hours ? (
+                    <div className="my-3 p-3 rounded-xl bg-[#f7b84b12] border border-[#f7b84b33] text-xs text-[#f7b84b] flex items-start gap-2.5 leading-relaxed">
+                      <Clock size={16} className="flex-shrink-0 mt-0.5" />
+                      <div>
+                        <strong>Contest starts in {formatCountdown(msLeft)}!</strong>
+                        <p className="text-[#8a90a6] mt-0.5">
+                          Since the contest is in less than 24 hours, the 1-day alert has already passed. Your reminder will be delivered <strong>1 hour before start ({formatIndianDateTime(oneHourAlertTime)})</strong>.
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-xs text-[#8a90a6] mt-2 mb-4">
+                      Choose your preferred reminder alerts for this contest:
+                    </p>
+                  )}
+
+                  {/* Timing Options */}
+                  <div className="flex flex-col gap-2 mb-4">
+                    {REMINDER_OPTIONS.map((opt) => {
+                      const isDisabled = isUnder24Hours && opt.type === "1_day";
+                      const isSelected = selectedType === opt.type && !isDisabled;
+                      return (
+                        <button
+                          key={opt.type}
+                          type="button"
+                          disabled={isDisabled}
+                          onClick={() => setSelectedType(opt.type)}
+                          className={`flex items-center justify-between p-3 rounded-xl border text-left transition-all ${
+                            isDisabled
+                              ? "bg-[#0d101780] border-[#1f243380] text-[#545b70] cursor-not-allowed opacity-60"
+                              : isSelected
+                              ? "bg-[#4f8cff12] border-[#4f8cff] text-[#e6e8ef] cursor-pointer"
+                              : "bg-[#0d1017] border-[#1f2433] text-[#8a90a6] hover:border-[#2b3245] cursor-pointer"
+                          }`}
+                        >
+                          <div className="flex items-center gap-3">
+                            <div
+                              className={`w-4 h-4 rounded-full border flex items-center justify-center ${
+                                isSelected ? "border-[#4f8cff] bg-[#4f8cff]" : "border-[#545b70]"
+                              }`}
+                            >
+                              {isSelected && <div className="w-1.5 h-1.5 rounded-full bg-[#0b0e14]" />}
+                            </div>
+                            <div>
+                              <span
+                                className={`text-sm font-semibold block ${
+                                  isDisabled ? "text-[#545b70]" : "text-[#f2f4f8]"
+                                }`}
+                              >
+                                {opt.label}
+                                {isDisabled && " (Already passed)"}
+                              </span>
+                              <span className="text-xs text-[#8a90a6]">
+                                {isDisabled
+                                  ? "Contest starts in less than 24 hours"
+                                  : opt.desc}
+                              </span>
+                            </div>
+                          </div>
+
+                          {opt.popular && !isDisabled && (
+                            <span className="text-[10px] font-semibold text-[#4f8cff] bg-[#4f8cff18] px-2 py-0.5 rounded-full uppercase tracking-wider">
+                              Popular
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  <div className="flex items-center justify-between text-xs text-[#8a90a6] mb-5 bg-[#0d1017] px-3 py-2 rounded-lg border border-[#1f2433]">
+                    <div className="flex items-center gap-2">
+                      <Clock size={14} className="text-[#4f8cff] flex-shrink-0" />
+                      <span>
+                        Alert time:{" "}
+                        <strong className="text-[#f2f4f8]">
+                          {formatIndianDateTime(oneHourAlertTime)}
+                        </strong>
+                      </span>
+                    </div>
+
+                    {/* Test email button */}
+                    <button
+                      type="button"
+                      onClick={handleSendTestEmail}
+                      disabled={testEmailLoading}
+                      title="Send a test email now to verify your Gmail settings"
+                      className="inline-flex items-center gap-1.5 text-[11px] font-medium text-[#4f8cff] hover:text-[#7bb0ff] transition-colors cursor-pointer"
+                    >
+                      {testEmailLoading ? (
+                        <Loader2 size={12} className="animate-spin" />
+                      ) : (
+                        <Send size={12} />
+                      )}
+                      <span>Test email now</span>
+                    </button>
+                  </div>
+
+                  {/* Modal Action Buttons */}
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={handleSaveReminder}
+                      disabled={reminderActionLoading}
+                      className="flex-1 inline-flex items-center justify-center gap-2 text-sm font-semibold text-[#0b0e14] bg-[#4f8cff] py-2.5 px-4 rounded-lg hover:opacity-90 disabled:opacity-50 transition-opacity cursor-pointer"
+                    >
+                      {reminderActionLoading ? (
+                        <span>Saving…</span>
+                      ) : (
+                        <>
+                          <Bell size={14} />
+                          <span>
+                            {myReminders[modalContest.id] ? "Update Reminder" : "Set Reminder"}
+                          </span>
+                        </>
+                      )}
+                    </button>
+
+                    {myReminders[modalContest.id] && (
+                      <button
+                        onClick={handleCancelReminder}
+                        disabled={reminderActionLoading}
+                        className="text-sm font-semibold text-[#ff5c5c] bg-[#ff5c5c14] border border-[#ff5c5c33] py-2.5 px-4 rounded-lg hover:bg-[#ff5c5c22] disabled:opacity-50 transition-colors cursor-pointer"
+                      >
+                        Cancel
+                      </button>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
     </main>
   );
 }

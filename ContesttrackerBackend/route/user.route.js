@@ -14,6 +14,7 @@ import {
     setContestReminder,
     removeContestReminder,
     getMyContestReminders,
+    testContestEmail,
 } from "../controller/reminder.controller.js";
 import limiter from "../middleware/rateLimiter.middleware.js";
 
@@ -55,6 +56,7 @@ router.route("/contests").get(getUpcomingContests);
 router.route("/contests/reminder").post(VerifyJWT, limiter, setContestReminder);
 router.route("/contests/reminder/:contestId").delete(VerifyJWT, removeContestReminder);
 router.route("/contests/my-reminders").get(VerifyJWT, getMyContestReminders);
+router.route("/contests/test-email").post(VerifyJWT, limiter, testContestEmail);
 router.route("/me").get(VerifyJWT, getCurrentUser);
 router.post(
     "/refresh",

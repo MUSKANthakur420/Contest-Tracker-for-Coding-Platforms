@@ -5,15 +5,18 @@ let transporter = null;
 export const getEmailTransporter = () => {
   if (transporter) return transporter;
 
-  const emailUser = process.env.EMAIL_USER;
-  const emailPass = process.env.EMAIL_PASS;
+  const emailUser = process.env.EMAIL_USER?.trim();
+  const rawPass = process.env.EMAIL_PASS?.trim();
 
-  if (!emailUser || !emailPass) {
+  if (!emailUser || !rawPass) {
     console.warn(
       "⚠️ EMAIL_USER or EMAIL_PASS not configured in environment variables. Emails will be logged to console."
     );
     return null;
   }
+
+  // Remove any whitespace from the App Password (Google displays app passwords in groups of 4)
+  const emailPass = rawPass.replace(/\s+/g, "");
 
   transporter = nodemailer.createTransport({
     service: process.env.EMAIL_SERVICE || "gmail",
@@ -27,15 +30,17 @@ export const getEmailTransporter = () => {
 };
 
 const formatISTDateTime = (date) => {
-  return new Intl.DateTimeFormat("en-IN", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: true,
-    timeZone: "Asia/Kolkata",
-  }).format(new Date(date)) + " IST";
+  return (
+    new Intl.DateTimeFormat("en-IN", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true,
+      timeZone: "Asia/Kolkata",
+    }).format(new Date(date)) + " IST"
+  );
 };
 
 /**

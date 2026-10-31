@@ -2,7 +2,10 @@ import asynchandler from "../utils/asynchandler.js";
 import Apires from "../utils/Apires.js";
 import Apierr from "../utils/Apierr.js";
 import Reminder from "../model/reminder.model.js";
-import { sendReminderConfirmationEmail } from "../services/email.service.js";
+import {
+  sendReminderConfirmationEmail,
+  getEmailTransporter,
+} from "../services/email.service.js";
 
 /**
  * Register or update a contest reminder for the authenticated user
@@ -53,7 +56,12 @@ export const setContestReminder = asynchandler(async (req, res) => {
   }
 
   // 2. Check for 1-Hour alert
-  if (reminderType === "both" || reminderType === "1_hour") {
+  // If contest is less than 24 hours away and user chose "1_day", also include 1-hour alert so user is not left without reminder
+  if (
+    reminderType === "both" ||
+    reminderType === "1_hour" ||
+    (reminderType === "1_day" && alerts.length === 0)
+  ) {
     const remindAtHour = timeOneHourBefore > now ? new Date(timeOneHourBefore) : new Date(now);
     alerts.push({
       alertType: "1_hour",
@@ -63,7 +71,7 @@ export const setContestReminder = asynchandler(async (req, res) => {
     });
   }
 
-  // Fallback in case contest is starting so soon that neither was added
+  // Fallback in case contest starts in less than 1 hour
   if (alerts.length === 0) {
     alerts.push({
       alertType: "1_hour",
@@ -76,6 +84,9 @@ export const setContestReminder = asynchandler(async (req, res) => {
   let scheduleText = "1 day before and 1 hour before";
   if (reminderType === "1_hour") scheduleText = "1 hour before";
   if (reminderType === "1_day") scheduleText = "1 day before";
+  if (timeOneDayBefore <= now) {
+    scheduleText = "1 hour before (contest is less than 24h away)";
+  }
 
   const reminder = await Reminder.findOneAndUpdate(
     { user: req.user._id, contestId },
@@ -154,5 +165,60 @@ export const getMyContestReminders = asynchandler(async (req, res) => {
 
   return res.status(200).json(
     new Apires(200, "User contest reminders fetched", reminders)
+  );
+});
+
+/**
+ * Test endpoint to immediately verify email configuration (Nodemailer / Gmail)
+ */
+export const testContestEmail = asynchandler(async (req, res) => {
+  const emailUser = process.env.EMAIL_USER?.trim();
+  const rawPass = process.env.EMAIL_PASS?.trim();
+
+  if (!emailUser || !rawPass) {
+    throw new Apierr(
+      400,
+      "EMAIL_USER or EMAIL_PASS is missing in Render environment variables. Please add them in Render Dashboard -> Environment."
+    );
+  }
+
+  const recipientEmail = req.user.email;
+  if (!recipientEmail) {
+    throw new Apierr(400, "No email address found for your user account.");
+  }
+
+  const transporter = getEmailTransporter();
+  if (!transporter) {
+    throw new Apierr(500, "Could not initialize email transporter.");
+  }
+
+  try {
+    await transporter.verify();
+  } catch (err) {
+    throw new Apierr(
+      400,
+      `Gmail SMTP Authentication failed: ${err.message}. Please verify you generated a 16-character App Password (without spaces) and 2-Step Verification is ON in your Google account.`
+    );
+  }
+
+  await transporter.sendMail({
+    from: `"ContTrack Alerts" <${emailUser}>`,
+    to: recipientEmail,
+    subject: "🎯 ContTrack Test Notification: Email reminders are active!",
+    html: `
+      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #0b0e14; color: #e6e8ef; padding: 28px; border-radius: 12px; max-width: 500px; margin: 0 auto; border: 1px solid #232838;">
+        <h2 style="color: #2fd9a8; margin-top: 0;">✅ Contest Email Reminders Active!</h2>
+        <p style="color: #8a90a6; font-size: 14px; line-height: 1.6;">Hi <strong>${req.user.username || "Coder"}</strong>,</p>
+        <p style="color: #8a90a6; font-size: 14px; line-height: 1.6;">This test email confirms that your ContTrack email alert system is correctly connected using <strong>${emailUser}</strong>.</p>
+        <p style="color: #8a90a6; font-size: 14px; line-height: 1.6;">You'll automatically receive reminder emails 1 day and 1 hour before your registered coding contests.</p>
+        <div style="margin-top: 20px; font-size: 12px; color: #545b70;">Sent by ContTrack · Coding Contest Tracker</div>
+      </div>
+    `,
+  });
+
+  return res.status(200).json(
+    new Apires(200, `Test email successfully sent to ${recipientEmail}! Check your inbox.`, {
+      recipient: recipientEmail,
+    })
   );
 });
