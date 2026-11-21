@@ -240,11 +240,27 @@ function Home() {
         <main className="relative overflow-hidden text-[#e6e8ef]" style={{ background: BG, fontFamily: SANS }}>
             <style>{PAGE_CSS}</style>
 
+            {/* Service Notice Banner */}
+            <div className="relative z-20 bg-gradient-to-r from-amber-500/15 via-amber-500/10 to-amber-500/15 border-b border-amber-500/25 px-4 py-3 text-center text-xs sm:text-sm text-amber-100 backdrop-blur-md">
+                <div className="max-w-4xl mx-auto flex items-center justify-center gap-2.5 flex-wrap">
+                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-amber-500/25 text-amber-300 border border-amber-500/30 rounded-full" style={{ fontFamily: MONO }}>
+                        ⚠️ Service Notice
+                    </span>
+                    <span className="leading-relaxed">
+                        All services will resume working from <strong className="text-white font-semibold underline decoration-amber-400 underline-offset-2">1 December</strong> because the monthly free tier limit of Render has been reached. Thank you for your patience!
+                    </span>
+                </div>
+            </div>
+
             {/* Hero */}
             <section className="relative isolate min-h-[700px]">
                 <Backdrop />
-                <div className="relative z-10 max-w-6xl mx-auto px-6 pt-28 pb-32">
+                <div className="relative z-10 max-w-6xl mx-auto px-6 pt-24 pb-32">
                     <div className="max-w-2xl">
+                        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-amber-500/30 bg-amber-500/10 text-amber-300 text-xs font-medium mb-6 backdrop-blur-sm">
+                            <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+                            <span>Services temporarily paused · Resuming 1 December</span>
+                        </div>
                         <h1 className="ct-headline text-6xl sm:text-7xl lg:text-[88px] font-bold leading-[0.98] tracking-tight mb-7">
                             Every judge.
                             <br />
